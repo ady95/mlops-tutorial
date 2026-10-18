@@ -13,7 +13,7 @@
 | `flower-support/src/compare.py` | MLflow 실험 비교표 | 08-5 |
 | `flower-support/params.yaml`, `dvc.yaml` | 모델 리비전, 학습 설정, 데이터 파이프라인 | 08-2, 08-3 |
 
-학습 데이터(`data/raw/generated.jsonl`, 합성 문의 3,000건)는 저장소에 넣지 않았습니다. `make_dataset.py`로 직접 만들거나, 같은 방식으로 여러분의 과제에 맞게 바꿔 쓰세요. 생성 결과는 사용한 모델에 따라 달라집니다.
+책의 실측에 쓴 합성 문의 3,000건은 [`dataset/generated.jsonl`](dataset/)에 있습니다. API 키가 없어도 이 파일로 똑같이 따라 할 수 있습니다. `make_dataset.py`로 직접 만들면 사용한 모델에 따라 결과가 달라지며, 여러분의 과제에 맞게 바꿔 쓰는 출발점으로 쓰세요.
 
 ## 빠른 실행
 
@@ -22,9 +22,10 @@
 cd flower-support
 uv sync --extra cu130
 
-# 1. 데이터 합성 (OpenAI API 또는 호환 서버)
-export OPENAI_API_KEY=sk-... OPENAI_MODEL=<모델> OPENAI_CHECK_MODEL=<검수 모델>
-uv run python src/make_dataset.py
+# 1. 데이터: 책의 합성 데이터를 쓰거나 (A), 직접 합성합니다 (B)
+mkdir -p data/raw && cp ../dataset/generated.jsonl data/raw/                      # (A)
+# export OPENAI_API_KEY=sk-... OPENAI_MODEL=<모델> OPENAI_CHECK_MODEL=<검수 모델>  # (B)
+# uv run python src/make_dataset.py
 uv run dvc init && uv run dvc add data/raw && uv run dvc repro
 
 # 2. 모델 받기 (리비전 고정)
