@@ -32,7 +32,7 @@ services:
     volumes:
       - s3data:/data
 
-  # 아티팩트 버킷을 한 번 만들고 종료하는 초기화 작업 (MLflow 이미지의 boto3 사용)
+  # 버킷(mlflow: 모델·아티팩트, dvc: 데이터 버전 — 3장)을 한 번 만들고 종료하는 초기화 작업 (MLflow 이미지의 boto3 사용)
   create-bucket:
     image: ghcr.io/mlflow/mlflow:v3.17.1-full
     depends_on:
@@ -54,9 +54,10 @@ services:
                 time.sleep(2)
         else:
             raise SystemExit("RustFS에 연결하지 못했습니다")
-        if "mlflow" not in names:
-            s3.create_bucket(Bucket="mlflow")
-        print("bucket ready: mlflow")
+        for bucket in ("mlflow", "dvc"):
+            if bucket not in names:
+                s3.create_bucket(Bucket=bucket)
+            print("bucket ready:", bucket)
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v3.17.1-full

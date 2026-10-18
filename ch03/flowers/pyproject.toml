@@ -1,0 +1,10 @@
+[project]
+name = "ch03-flowers-data"
+version = "0.1.0"
+description = "MLOps 따라하기 3장: 꽃 이미지 데이터 관리 (DVC + RustFS)"
+requires-python = ">=3.12"
+dependencies = [
+    "dvc[s3]==3.67.1",
+    "pillow==13.0.0",
+    "pyyaml>=6",
+]
