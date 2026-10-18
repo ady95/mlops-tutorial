@@ -1,0 +1,87 @@
+# MLflow 추적 서버 — PostgreSQL(실행 기록) + RustFS(S3 호환 아티팩트 저장소)
+# 실행: cp .env.example .env && docker compose up -d
+# 접속: MLflow UI http://localhost:5000 / RustFS 콘솔 http://localhost:9001/rustfs/console/
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: mlflow
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d mlflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rustfs:
+    image: rustfs/rustfs:1.0.3
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY}
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "5000:5000"   # MLflow UI/API (mlflow 서비스가 이 컨테이너의 네트워크를 함께 씀)
+      - "9000:9000"   # S3 API (DVC 원격 저장소로도 사용 — 3장)
+      - "9001:9001"   # 웹 콘솔
+    volumes:
+      - s3data:/data
+
+  # 아티팩트 버킷을 한 번 만들고 종료하는 초기화 작업 (MLflow 이미지의 boto3 사용)
+  create-bucket:
+    image: ghcr.io/mlflow/mlflow:v3.17.1-full
+    depends_on:
+      - rustfs
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+    command:
+      - python
+      - -c
+      - |
+        import time, boto3
+        s3 = boto3.client("s3", endpoint_url="http://rustfs:9000", region_name="us-east-1")
+        for _ in range(30):
+            try:
+                names = [b["Name"] for b in s3.list_buckets()["Buckets"]]
+                break
+            except Exception:
+                time.sleep(2)
+        else:
+            raise SystemExit("RustFS에 연결하지 못했습니다")
+        if "mlflow" not in names:
+            s3.create_bucket(Bucket="mlflow")
+        print("bucket ready: mlflow")
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.17.1-full
+    restart: unless-stopped
+    # MLflow는 아티팩트를 내려줄 때 S3 주소가 담긴 미리 서명된 URL(presigned URL)을 클라이언트에 건넨다.
+    # 그 주소는 컨테이너 밖에서도 열려야 하므로, RustFS와 네트워크를 공유해 localhost:9000으로 접속한다.
+    network_mode: service:rustfs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      create-bucket:
+        condition: service_completed_successfully
+    environment:
+      # 다른 PC에서 MLflow를 쓸 때는 .env의 S3_PUBLIC_ENDPOINT를 서버 주소로 바꾼다
+      MLFLOW_S3_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+    command:
+      - mlflow
+      - server
+      - --host=0.0.0.0
+      - --port=5000
+      - --backend-store-uri=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/mlflow
+      - --artifacts-destination=s3://mlflow
+
+volumes:
+  pgdata:
+  s3data:

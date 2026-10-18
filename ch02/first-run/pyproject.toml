@@ -1,0 +1,38 @@
+[project]
+name = "ch02-first-run"
+version = "0.1.0"
+description = "MLOps 따라하기 02-5: 첫 번째 모델 학습 및 MLflow 기록"
+requires-python = ">=3.12"
+dependencies = [
+    "mlflow==3.17.1",
+]
+
+# PyTorch는 실행 환경에 맞는 휠을 골라 설치합니다.
+#   CPU 전용:        uv sync --extra cpu
+#   NVIDIA GPU:      uv sync --extra cu130   (드라이버 580 이상, CUDA 13.0)
+[project.optional-dependencies]
+cpu = ["torch==2.14.1", "torchvision==0.29.1"]
+cu130 = ["torch==2.14.1", "torchvision==0.29.1"]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "cu130" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu130", extra = "cu130" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu130", extra = "cu130" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
