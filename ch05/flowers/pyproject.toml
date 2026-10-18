@@ -1,0 +1,43 @@
+[project]
+name = "ch05-flowers-registry"
+version = "0.1.0"
+description = "MLOps 따라하기 5장: 모델 레지스트리, 평가, 배포 승인"
+requires-python = ">=3.12"
+dependencies = [
+    "dvc[s3]==3.67.1",
+    "mlflow==3.17.1",
+    "pillow==13.0.0",
+    "pyyaml>=6",
+    "matplotlib>=3.11",
+    "scikit-learn>=1.9",
+]
+
+# PyTorch는 실행 환경에 맞는 휠을 골라 설치합니다 (02-1 참고).
+#   CPU 전용:    uv sync --extra cpu
+#   NVIDIA GPU:  uv sync --extra cu130
+[project.optional-dependencies]
+cpu = ["torch==2.14.1", "torchvision==0.29.1"]
+cu130 = ["torch==2.14.1", "torchvision==0.29.1"]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "cu130" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu130", extra = "cu130" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu130", extra = "cu130" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
