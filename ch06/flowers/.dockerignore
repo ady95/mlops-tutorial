@@ -1,0 +1,7 @@
+.venv
+data
+.dvc
+reports
+**/__pycache__
+flowers.onnx*
+.env

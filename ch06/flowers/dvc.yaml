@@ -1,0 +1,27 @@
+stages:
+  validate:
+    cmd: python src/validate.py
+    deps:
+      - src/validate.py
+      - data/raw
+    params:
+      - validate
+    outs:
+      - data/interim/validation.json
+    metrics:
+      - reports/validation.json:
+          cache: false
+
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+      - src/prepare.py
+      - data/raw
+      - data/interim/validation.json
+    params:
+      - prepare
+    outs:
+      - data/prepared
+    metrics:
+      - reports/prepare.json:
+          cache: false
