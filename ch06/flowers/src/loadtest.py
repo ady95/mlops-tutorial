@@ -47,7 +47,10 @@ async def main():
         elapsed = time.perf_counter() - start
 
     latencies.sort()
-    pct = lambda q: latencies[min(len(latencies) - 1, int(len(latencies) * q))]
+
+    def pct(q):
+        return latencies[min(len(latencies) - 1, int(len(latencies) * q))]
+
     print(f"concurrency={args.concurrency} requests={args.requests} errors={len(errors)}")
     print(f"throughput {len(latencies) / elapsed:.1f} req/s | "
           f"p50 {pct(0.50):.0f}ms  p95 {pct(0.95):.0f}ms  p99 {pct(0.99):.0f}ms")
