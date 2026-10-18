@@ -31,3 +31,7 @@ MLflow · DVC · ZenML · PyTorch · Hugging Face (TRL / PEFT) · vLLM · FastAP
 | CPU 노트북 (RAM 16GB 이상) | 1~7장 (데이터 관리, 학습, 배포, 파이프라인) |
 | GPU 24GB급 (RTX 3090 등) | 8~12장 (LoRA·QLoRA, 로컬 LLM 서빙) |
 | Kubernetes GPU 노드 | 14장 확장 실습 |
+
+## 라이선스
+
+[MIT License](LICENSE)
