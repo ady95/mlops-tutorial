@@ -1,0 +1,65 @@
+# 학습에 영향을 주는 파일이 main에서 바뀌면: 테스트 → 학습 파이프라인(우리 서버의 러너) (07-4)
+# 주의: 우리 서버에서 도는 작업이 있으므로 반드시 비공개 저장소에서만 쓴다.
+name: pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:                       # 이 파일들이 바뀔 때만 학습한다 (배포 스크립트·문서 변경으로는 학습하지 않음)
+      - "src/training.py"
+      - "src/registry.py"
+      - "src/validate.py"
+      - "src/prepare.py"
+      - "pipeline/**"
+      - "params.yaml"
+      - "dvc.yaml"
+      - "data/*.dvc"
+      - "uv.lock"
+  workflow_dispatch:             # 수동 재학습 (12장에서는 신규 데이터가 이 워크플로를 부른다)
+
+concurrency:
+  group: pipeline
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          version: "0.13.1"
+      - run: uv sync --frozen --extra cpu
+      - run: uv run pytest -q
+
+  train:
+    needs: test
+    runs-on: [self-hosted, mlops-cpu]
+    env:
+      MLFLOW_TRACKING_URI: http://localhost:5000
+      ZENML_STORE_URL: http://localhost:8080
+      ZENML_STORE_API_KEY: ${{ secrets.ZENML_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: uv 경로 추가
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: uv sync --frozen --extra cpu
+      - name: DVC 설정 (접속 키, 작업 폴더 밖의 캐시)
+        run: |
+          uv run dvc remote modify --local rustfs access_key_id "${{ secrets.S3_ACCESS_KEY }}"
+          uv run dvc remote modify --local rustfs secret_access_key "${{ secrets.S3_SECRET_KEY }}"
+          uv run dvc cache dir --local "$HOME/dvc-cache"
+      - name: 학습 파이프라인
+        run: uv run python -m pipeline.run
+      - name: 판정 결과 요약
+        run: |
+          uv run python - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          r = json.load(open("gate_result.json"))
+          print(f"### flowers-classifier v{r['version']}: {'통과 — challenger' if r['passed'] else '불가'}\n")
+          print("| 기준 | 결과 |\n|---|---|")
+          for c in r["checks"]:
+              print(f"| {c['rule']} | {'OK' if c['ok'] else '불가'} |")
+          if r["passed"]:
+              print(f"\n승격하려면 deploy 워크플로를 version={r['version']}로 실행하세요.")
+          EOF

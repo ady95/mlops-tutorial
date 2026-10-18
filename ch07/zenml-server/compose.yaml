@@ -1,0 +1,21 @@
+# ZenML 서버 (07-1)
+# 실행: cp .env.example .env (비밀번호 변경) && docker compose up -d
+# 대시보드: http://localhost:8080
+
+services:
+  zenml:
+    image: zenmldocker/zenml-server:0.98.0
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # 처음 시작할 때 서버를 활성화하고 관리자 계정을 만든다 (브라우저 없이도 쓸 수 있게)
+      ZENML_SERVER_AUTO_ACTIVATE: "True"
+      ZENML_DEFAULT_USER_NAME: ${ZENML_ADMIN_USER:-admin}
+      ZENML_DEFAULT_USER_PASSWORD: ${ZENML_ADMIN_PASSWORD:?.env에 ZENML_ADMIN_PASSWORD를 설정하세요}
+      ZENML_ANALYTICS_OPT_IN: "false"          # 사용 통계 전송 끄기 (이미지 기본값은 켜짐)
+    volumes:
+      - zenml-data:/zenml/.zenconfig            # 파이프라인 실행 기록 (SQLite)
+
+volumes:
+  zenml-data:
