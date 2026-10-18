@@ -1,0 +1,40 @@
+[project]
+name = "ch08-flower-support"
+version = "0.1.0"
+description = "MLOps 따라하기 8장: 고객 문의 JSON 추출 LLM 파인튜닝 (LoRA·QLoRA)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "transformers==5.20.1",
+    "trl==1.16.0",
+    "peft==0.21.2",
+    "accelerate==1.15.0",
+    "datasets==5.1.0",
+    "bitsandbytes==0.50.2",
+    "mlflow==3.17.1",
+    "pyyaml>=6",
+    "flash-linear-attention==0.5.2",   # Qwen3.5 선형 어텐션 층의 빠른 커널 (없으면 느린 PyTorch 구현으로 대체) (08-3)
+]
+
+[project.optional-dependencies]
+cu130 = ["torch==2.14.1", "torchvision==0.29.1"]
+
+# 데이터 합성·버전 관리·테스트 도구 — 모델 의존성과 분리 (06-2)
+[dependency-groups]
+dev = [
+    "openai==3.35.1",
+    "dvc[s3]==3.67.1",
+    "pytest>=8",
+]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu130", extra = "cu130" }]
+torchvision = [{ index = "pytorch-cu130", extra = "cu130" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

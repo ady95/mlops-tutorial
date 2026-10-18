@@ -1,0 +1,14 @@
+stages:
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+      - src/prepare.py
+      - src/schema.py
+      - data/raw
+    params:
+      - prepare
+    outs:
+      - data/prepared
+    metrics:
+      - reports/prepare.json:
+          cache: false

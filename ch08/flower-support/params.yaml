@@ -1,0 +1,29 @@
+data:                          # 학습 데이터 합성 (08-1)
+  n_generate: 3000
+  seed: 42
+  concurrency: 16
+
+model:                         # 베이스 모델 (08-2) — 리비전을 고정해야 같은 모델을 다시 받는다
+  name: Qwen/Qwen3.5-4B
+  revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+
+train:                         # LoRA 지도 미세조정 (08-3)
+  run_name: ""                 # 비우면 r16-all-linear-none 처럼 설정에서 만든다
+  quantization: none           # none = LoRA (bf16 베이스), 4bit = QLoRA
+  target: all-linear           # all-linear | attention (q·k·v·o만)
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lr: 0.0002
+  epochs: 2
+  batch_size: 4
+  grad_accum: 4                # 실효 배치 = 4 × 4 = 16
+  max_length: 1024
+  save_steps: 50
+  save_total_limit: 3
+  seed: 42
+
+prepare:                       # 품질 검사와 분할 (08-1)
+  seed: 42
+  val_size: 200
+  test_size: 300
