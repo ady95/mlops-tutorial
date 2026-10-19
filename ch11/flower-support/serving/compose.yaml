@@ -1,0 +1,56 @@
+# vLLM 서버 + 게이트웨이 (10-1, 10-5)
+# 실행 (flower-support 폴더에서):
+#   echo "RELOAD_TOKEN=$(openssl rand -hex 24)" > serving/.env
+#   docker compose -f serving/compose.yaml up -d --build
+# vLLM: http://localhost:8001/v1 (OpenAI 호환), 게이트웨이: http://localhost:8002
+
+services:
+  vllm:
+    image: vllm/vllm-openai:v0.31.0
+    ports:
+      - "127.0.0.1:8001:8000"                # 이 서버 안에서만 (게이트웨이가 앞에 선다). 실행 중 어댑터 올리기 API가 열려 있으므로 밖에 노출하지 않는다
+    ipc: host                                  # 프로세스 사이 공유 메모리 (vLLM 권장)
+    environment:
+      VLLM_ALLOW_RUNTIME_LORA_UPDATING: "True" # 게이트웨이가 실행 중에 어댑터를 올린다 (10-5)
+    volumes:
+      - ${HF_HOME:-~/.cache/huggingface}:/root/.cache/huggingface
+      - ./releases:/releases:ro                # 게이트웨이가 받아 둔 어댑터
+      - vllm-cache:/root/.cache/vllm           # torch.compile 결과를 남겨 다음 시작을 빠르게 (10-5)
+    command: >
+      --model Qwen/Qwen3.5-4B --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+      --served-model-name qwen3.5-4b
+      --enable-lora --max-lora-rank 16 --max-loras 2
+      --max-model-len 2048 --gpu-memory-utilization 0.85
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      start_period: 600s                       # 첫 시작은 컴파일·CUDA 그래프 준비로 5분 남짓 걸린다
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: gateway/Dockerfile
+    network_mode: host                         # MLflow(localhost:5000)와 vLLM(localhost:8001)에 그대로 닿게 (06-2)
+    environment:
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://localhost:5000}
+      VLLM_URL: http://localhost:8001
+      RELOAD_TOKEN: ${RELOAD_TOKEN:?serving/.env에 RELOAD_TOKEN을 설정하세요}
+      RELEASES_DIR: /releases
+      TRACING: ${TRACING:-on}                  # off면 트레이스를 남기지 않는다 (기록 비용 측정용, 11-2)
+    volumes:
+      - ./releases:/releases                   # vLLM과 같은 경로로 보이게 마운트
+    depends_on:
+      vllm:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  vllm-cache:

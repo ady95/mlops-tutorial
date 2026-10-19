@@ -1,0 +1,12 @@
+[project]
+name = "ch10-gateway"
+version = "0.1.0"
+description = "MLOps 따라하기 10장: vLLM 앞의 고객 문의 JSON 추출 게이트웨이"
+requires-python = ">=3.12,<3.13"
+# GPU도 torch도 필요 없다: 모델 계산은 vLLM이, 레지스트리 조회는 mlflow-skinny가 맡는다
+dependencies = [
+    "fastapi==0.143.3",
+    "uvicorn==0.54.0",
+    "httpx==0.28.1",
+    "mlflow-skinny==3.17.1",
+]
