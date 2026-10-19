@@ -1,0 +1,20 @@
+[project]
+name = "ch10-quantize"
+version = "0.1.0"
+description = "MLOps 따라하기 10장: 병합 모델 4비트 양자화 (llm-compressor 전용 환경)"
+requires-python = ">=3.12,<3.13"
+# llm-compressor 0.14.0은 torch<=2.14.0, transformers<=5.17.0을 요구해 학습 환경과 함께 둘 수 없다
+dependencies = [
+    "llmcompressor==0.14.0",
+    "torch==2.14.0",
+    "transformers==5.17.0",
+    "flash-linear-attention==0.5.2",
+]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu130" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
