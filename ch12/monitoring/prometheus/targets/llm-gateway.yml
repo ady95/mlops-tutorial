@@ -1,0 +1,5 @@
+# LLM 게이트웨이 (10-5). GPU 서버가 따로 있으면 host.docker.internal을 그 서버 주소로 바꾼다.
+- targets: ["host.docker.internal:8002"]
+  labels:
+    service: llm-gateway
+    server: llm

@@ -1,0 +1,29 @@
+# GPU 서버에서 실행하는 지표 내보내기 (12-2): GPU(9400)와 서버(9100)
+# 실행: docker compose -f exporters/compose.yaml up -d
+# 두 포트 모두 읽기 전용 지표지만, 모니터링 서버만 닿도록 방화벽으로 막아 두는 편이 좋다.
+
+services:
+  dcgm-exporter:
+    image: nvidia/dcgm-exporter:4.6.1-4.8.4
+    cap_add:
+      - SYS_ADMIN
+    ports:
+      - "9400:9400"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    command:
+      - --path.rootfs=/host
+    network_mode: host
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped

@@ -1,0 +1,5 @@
+data/downloads/
+gate_result.json
+.env
+__pycache__/
+.pytest_cache/

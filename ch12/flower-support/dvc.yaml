@@ -1,0 +1,59 @@
+stages:
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+      - src/prepare.py
+      - src/schema.py
+      - data/raw
+    params:
+      - prepare
+    outs:
+      - data/prepared
+    metrics:
+      - reports/prepare.json:
+          cache: false
+
+  build_evalset:               # 평가 세트 확정 (09-2): 검토 기록 적용 + 학습 데이터와 겹침 검사
+    cmd: python src/build_evalset.py evalset
+    deps:
+      - src/build_evalset.py
+      - eval/raw
+      - eval/review_evalset.yaml
+      - data/prepared/train.jsonl
+    outs:
+      - eval/evalset.jsonl
+    metrics:
+      - reports/evalset.json:
+          cache: false
+
+  prepare_v2:                  # 재학습 데이터 (09-5): 8장 데이터 + 보강, 프롬프트 v2
+    cmd: python -m src.prepare_v2
+    deps:
+      - src/prepare_v2.py
+      - src/prompts.py
+      - data/prepared/train.jsonl
+      - data/prepared/val.jsonl
+      - data/augment
+      - eval/evalset.jsonl
+    params:
+      - augment.seed
+    outs:
+      - data/prepared_v2
+    metrics:
+      - reports/prepare_v2.json:
+          cache: false
+
+  build_holdout:               # 보류 세트 확정 (09-5): 재학습을 정한 뒤에 만들었다
+    cmd: python src/build_evalset.py holdout
+    deps:
+      - src/build_evalset.py
+      - eval/raw
+      - eval/review_holdout.yaml
+      - data/prepared/train.jsonl
+      - eval/evalset.jsonl
+      - data/augment
+    outs:
+      - eval/holdout.jsonl
+    metrics:
+      - reports/holdout.json:
+          cache: false

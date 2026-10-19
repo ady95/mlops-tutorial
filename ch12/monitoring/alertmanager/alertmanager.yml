@@ -1,0 +1,27 @@
+# Alertmanager 설정 (12-4): 묶고(group), 미루고(wait), 덜 보내고(repeat), 가린다(inhibit).
+route:
+  receiver: team
+  group_by: [alertname, service, project]   # 같은 알림이 여러 대상에서 나도 한 통으로. project가 빠지면 두 프로젝트의 드리프트가 한 묶음이 된다 (12-4 실측)
+  group_wait: 30s                  # 첫 알림 전에 30초 기다려 같이 터진 것을 모은다
+  group_interval: 5m               # 같은 묶음에 새 알림이 더해지면 5분 간격으로
+  repeat_interval: 4h              # 해결되지 않은 알림을 다시 보내는 간격
+  routes:
+    - matchers: [severity="critical"]
+      receiver: oncall
+      repeat_interval: 1h
+
+receivers:
+  - name: team                     # 근무 시간 안에 확인 (warning)
+    webhook_configs:
+      - url: http://alert-receiver:8080/alerts?channel=team
+        send_resolved: true
+  - name: oncall                   # 바로 대응 (critical)
+    webhook_configs:
+      - url: http://alert-receiver:8080/alerts?channel=oncall
+        send_resolved: true
+
+inhibit_rules:
+  # 서비스가 멈췄으면 그 서비스의 품질 알림(지연·확신도 등)은 보내지 않는다 — 원인은 하나다
+  - source_matchers: [alertname="ServiceDown"]
+    target_matchers: [severity="warning"]
+    equal: [service]

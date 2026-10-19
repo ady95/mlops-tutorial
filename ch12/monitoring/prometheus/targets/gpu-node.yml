@@ -1,0 +1,4 @@
+# GPU 서버의 node-exporter (exporters/compose.yaml). 모니터링 서버와 같은 PC라면 이 파일은 비워 둔다.
+- targets: ["host.docker.internal:9100"]
+  labels:
+    server: llm

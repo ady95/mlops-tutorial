@@ -1,0 +1,79 @@
+# 통합 모니터링 스택 (12-1): Prometheus + Grafana + Alertmanager + Pushgateway + 서버 지표 + 알림 수신기
+# 실행 (monitoring 폴더에서, 2장 MLflow와 같은 서버):
+#   echo "GRAFANA_ADMIN_PASSWORD=$(openssl rand -hex 16)" > .env && chmod 600 .env
+#   docker compose up -d
+# Grafana: http://localhost:3000 (admin / .env의 비밀번호)
+# Prometheus·Alertmanager·Pushgateway는 인증이 없으므로 이 서버 안(127.0.0.1)에만 연다.
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d     # 지표를 30일 보관
+      - --web.enable-lifecycle                # 설정을 고친 뒤 curl -X POST localhost:9090/-/reload 로 다시 읽기
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # 호스트 네트워크로 도는 추론 서버(8000)와 서버 지표(9100)에 닿게
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.34.1
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - ./alertmanager:/etc/alertmanager:ro
+      - alertmanager-data:/alertmanager       # 묵음(silence) 설정과 알림 기록을 재시작 뒤에도 유지
+    restart: unless-stopped
+
+  pushgateway:                                # 잠깐 돌고 끝나는 작업(드리프트 검사)이 지표를 맡겨 두는 곳 (12-3)
+    image: prom/pushgateway:v1.11.2
+    command:
+      - --persistence.file=/data/metrics
+    ports:
+      - "127.0.0.1:9091:9091"
+    volumes:
+      - pushgateway-data:/data
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?.env에 GRAFANA_ADMIN_PASSWORD를 설정하세요}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro   # 데이터 소스와 대시보드를 파일로 등록
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+
+  node-exporter:                              # 이 서버의 CPU·메모리·디스크
+    image: prom/node-exporter:v1.12.1
+    command:
+      - --path.rootfs=/host
+    network_mode: host
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped
+
+  alert-receiver:                             # Alertmanager가 보낸 알림을 받아 기록한다 (12-4)
+    build: ./receiver
+    volumes:
+      - ./receiver-data:/data
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  alertmanager-data:
+  pushgateway-data:
+  grafana-data:

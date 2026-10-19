@@ -1,0 +1,136 @@
+# 알림 규칙 (12-4). 원칙: 사람이 지금 할 일이 있는 것만 알림으로 만든다. 나머지는 대시보드에 둔다.
+# severity: critical = 서비스가 멈췄거나 곧 멈춘다 (바로 대응), warning = 품질이 나빠지고 있다 (근무 시간 안에 확인)
+groups:
+  - name: service                  # 서비스가 살아 있고 빠른가
+    rules:
+      - alert: ServiceDown
+        expr: up{job=~"flowers-api|llm-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service }}에서 지표를 가져오지 못합니다 (1분 이상)"
+
+      - alert: FlowersSlow
+        expr: histogram_quantile(0.95, sum by (le) (rate(flowers_predict_seconds_bucket[5m]))) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: flowers-api
+        annotations:
+          summary: "꽃 분류 p95 지연 {{ $value | humanizeDuration }} (기준 200ms)"
+
+      - alert: LLMSlow
+        expr: histogram_quantile(0.95, sum by (le) (rate(llm_request_seconds_bucket[5m]))) > 3
+        for: 5m
+        labels:
+          severity: warning
+          service: llm-gateway
+        annotations:
+          summary: "LLM 게이트웨이 p95 지연 {{ $value | humanizeDuration }} (기준 3초)"
+
+      - alert: LLMQueueBuildingUp      # 요청이 처리 속도보다 빨리 들어온다 — 지연이 곧 늘어난다
+        # 줄은 두 곳에 선다: 게이트웨이의 작업 스레드(40개)와 vLLM의 대기열. 실측에서는 앞쪽에만 섰다 (12-2)
+        expr: max(llm_in_flight_requests) > 40 or sum(vllm:num_requests_waiting) > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: llm-gateway
+        annotations:
+          summary: "LLM 요청이 2분 넘게 줄 서 있습니다 ({{ $value }}건)"
+
+  - name: model                    # 모델의 출력이 평소와 같은가
+    rules:
+      - alert: FlowersLowConfidence    # 가장 높은 확률이 0.6 미만인 예측의 비율 (평소 약 4%)
+        expr: |
+          sum(rate(flowers_prediction_confidence_bucket{le="0.6"}[15m]))
+            / sum(rate(flowers_prediction_confidence_count[15m])) > 0.15
+          and sum(increase(flowers_prediction_confidence_count[15m])) > 50
+        for: 10m
+        labels:
+          severity: warning
+          service: flowers-api
+        annotations:
+          summary: "확신 낮은 예측 비율 {{ $value | humanizePercentage }} (평소 약 4%, 기준 15%)"
+
+      - alert: FlowersDarkInputs       # 평균 밝기 0.2 미만 사진의 비율 — 입력 분포가 바뀌는 가장 빠른 신호
+        expr: |
+          sum(rate(flowers_input_brightness_bucket{le="0.2"}[15m]))
+            / sum(rate(flowers_input_brightness_count[15m])) > 0.2
+          and sum(increase(flowers_input_brightness_count[15m])) > 50
+        for: 10m
+        labels:
+          severity: warning
+          service: flowers-api
+        annotations:
+          summary: "어두운 사진 비율 {{ $value | humanizePercentage }} (기준 20%) — 새 촬영 환경이 생겼는지 확인"
+
+      - alert: LLMSchemaInvalid        # 11-4의 운영 신호를 시간 단위로
+        expr: |
+          sum(rate(llm_signal_total{signal="schema_invalid"}[15m]))
+            / sum(rate(llm_requests_total[15m])) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+          service: llm-gateway
+        annotations:
+          summary: "형식이 틀린 응답 비율 {{ $value | humanizePercentage }} (기준 1%)"
+
+      - alert: LLMLowConfidence        # params.yaml monitor: low_confidence 0.9, max_low_confidence_rate 0.10
+        expr: |
+          sum(rate(llm_category_confidence_bucket{le="0.9"}[15m]))
+            / sum(rate(llm_category_confidence_count[15m])) > 0.10
+          and sum(increase(llm_category_confidence_count[15m])) > 50
+        for: 10m
+        labels:
+          severity: warning
+          service: llm-gateway
+        annotations:
+          summary: "분류 확신도 0.9 미만 비율 {{ $value | humanizePercentage }} (기준 10%)"
+
+  - name: gpu                      # GPU가 곧 한계에 닿는가
+    rules:
+      - alert: GPUMemoryNearlyFull     # vLLM은 시작할 때 미리 잡아 두므로 추론 서버에는 맞지 않는다 (12-2) — 학습 서버용
+        expr: |
+          DCGM_FI_DEV_FB_USED{server="train"}
+            / (DCGM_FI_DEV_FB_USED{server="train"} + DCGM_FI_DEV_FB_FREE{server="train"}) > 0.95
+        for: 2m
+        labels:
+          severity: warning
+          service: training
+        annotations:
+          summary: "학습 GPU 메모리 {{ $value | humanizePercentage }} 사용 — OOM 직전"
+
+      - alert: KVCacheNearlyFull       # 추론 서버의 '메모리 부족'은 KV 캐시로 본다
+        expr: max(vllm:kv_cache_usage_perc) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: llm-gateway
+        annotations:
+          summary: "vLLM KV 캐시 {{ $value | humanizePercentage }} 사용 — 요청이 밀리거나 선점(preemption)이 생깁니다"
+
+      - alert: GPUHot
+        expr: DCGM_FI_DEV_GPU_TEMP > 85
+        for: 10m
+        labels:
+          severity: warning
+          service: gpu
+        annotations:
+          summary: "{{ $labels.server }} GPU 온도 {{ $value }}°C"
+
+  - name: drift                    # 드리프트 검사(12-3)가 Pushgateway에 맡긴 결과
+    rules:
+      - alert: DataDrift
+        expr: ml_drift_share >= 0.5    # 검사한 특성 중 절반 이상의 분포가 기준과 다르다 (Evidently 기본 기준)
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.project }} 입력·출력 분포 변화: 특성 {{ $value | humanizePercentage }}가 기준과 다릅니다. MLflow의 드리프트 리포트를 확인하세요"
+
+      - alert: DriftCheckStale         # 검사가 멈추면 '드리프트 없음'과 구분할 수 없다
+        expr: time() - push_time_seconds{job=~"drift-.*"} > 3 * 3600
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} 드리프트 검사가 3시간 넘게 돌지 않았습니다"

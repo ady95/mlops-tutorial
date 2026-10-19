@@ -1,0 +1,55 @@
+# Prometheus 설정 (12-1). 15초마다 각 서버의 /metrics를 가져가고, 규칙을 평가한다.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # 프로젝트 A: 꽃 분류 추론 서버 (6장, 12-1에서 /metrics 추가)
+  - job_name: flowers-api
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+        labels:
+          service: flowers-api
+
+  # 모니터링 서버 자신의 CPU·메모리·디스크
+  - job_name: node
+    static_configs:
+      - targets: ["host.docker.internal:9100"]
+        labels:
+          server: monitoring
+
+  # 드리프트 검사처럼 잠깐 돌고 끝나는 작업이 맡겨 둔 지표 (12-3)
+  - job_name: pushgateway
+    honor_labels: true                     # 작업이 붙인 job·instance 라벨을 그대로 쓴다
+    static_configs:
+      - targets: ["pushgateway:9091"]
+
+  # 프로젝트 B: GPU 서버의 대상은 파일로 둔다. 파일을 고치면 재시작 없이 반영된다.
+  - job_name: llm-gateway
+    file_sd_configs:
+      - files: ["/etc/prometheus/targets/llm-gateway.yml"]
+
+  - job_name: vllm                         # vLLM 지표는 게이트웨이가 대신 내보낸다 (vLLM은 127.0.0.1에만 열려 있음, 10-2)
+    metrics_path: /vllm-metrics
+    file_sd_configs:
+      - files: ["/etc/prometheus/targets/llm-gateway.yml"]
+
+  - job_name: dcgm                         # GPU 지표 (12-2)
+    file_sd_configs:
+      - files: ["/etc/prometheus/targets/gpu.yml"]
+
+  - job_name: node-gpu                     # GPU 서버의 CPU·메모리·디스크
+    file_sd_configs:
+      - files: ["/etc/prometheus/targets/gpu-node.yml"]

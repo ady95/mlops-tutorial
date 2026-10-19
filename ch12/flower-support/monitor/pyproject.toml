@@ -1,0 +1,11 @@
+[project]
+name = "flower-support-monitor"
+version = "0.1.0"
+description = "MLOps 따라하기 12장: LLM 서비스 드리프트 검사 (학습 환경과 분리)"
+requires-python = ">=3.12"
+dependencies = [
+    "evidently==0.7.23",
+    "mlflow-skinny==3.17.1",
+    "prometheus-client==0.26.0",
+    "pandas>=2.2",
+]

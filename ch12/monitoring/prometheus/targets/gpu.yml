@@ -1,0 +1,7 @@
+# DCGM Exporter (exporters/compose.yaml). GPU 서버마다 한 줄씩, 주소는 그 서버의 것으로.
+- targets: ["host.docker.internal:9400"]
+  labels:
+    server: llm          # 추론 서버
+# - targets: ["학습-서버-주소:9400"]
+#   labels:
+#     server: train      # 학습 서버

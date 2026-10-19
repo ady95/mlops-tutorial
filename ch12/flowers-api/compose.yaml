@@ -1,0 +1,28 @@
+# 꽃 분류 추론 서버 (06-2) + /metrics (12-1) + 예측 기록 (12-3)
+# 실행: echo "RELOAD_TOKEN=아무도-모르는-값" > .env && docker compose up -d --build
+# 2장의 MLflow 서버(같은 PC)에서 champion 모델을 불러온다.
+
+services:
+  api:
+    build: .
+    image: flowers-api:0.3.0
+    restart: unless-stopped
+    # 호스트 네트워크를 그대로 쓴다. 컨테이너 안에서도 localhost:5000(MLflow)과
+    # localhost:9000(모델 파일 다운로드 주소)이 호스트와 똑같이 열린다. 서버는 8000번 포트로 바로 열린다.
+    network_mode: host
+    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS:-1}"]
+    environment:
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://localhost:5000}
+      MODEL_NAME: ${MODEL_NAME:-flowers-classifier}   # ONNX로 서빙하려면 flowers-classifier-onnx (06-4)
+      MODEL_ALIAS: champion
+      RELOAD_TOKEN: ${RELOAD_TOKEN:?.env에 RELOAD_TOKEN을 설정하세요}
+      TORCH_THREADS: ${TORCH_THREADS:-4}
+      PREDICTION_LOG_DIR: /logs                       # 날짜별 predictions-YYYY-MM-DD.jsonl (드리프트 검사의 입력)
+    volumes:
+      - ./logs:/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
