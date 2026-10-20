@@ -129,19 +129,29 @@ groups:
           summary: "{{ $labels.project }} 입력·출력 분포 변화: 특성 {{ $value | humanizePercentage }}가 기준과 다릅니다. MLflow의 드리프트 리포트를 확인하세요"
 
       - alert: DriftCheckStale         # 검사가 멈추면 '드리프트 없음'과 구분할 수 없다
+        # 결과(drift-flowers)가 아니라 실행 기록(drift-flowers-run)을 본다. 요청이 적어 판단을 미룬 실행도 실행이다 (14-5)
         # 정기 실행하는 검사만 본다. 프로젝트 B(drift-flower-support)는 이 책에서 필요할 때 직접 실행한다
-        expr: time() - push_time_seconds{job="drift-flowers"} > 3 * 3600
+        expr: time() - push_time_seconds{job="drift-flowers-run"} > 3 * 3600
         labels:
           severity: warning
           project: flowers
         annotations:
-          summary: "{{ $labels.job }} 드리프트 검사가 3시간 넘게 돌지 않았습니다"
+          summary: "drift-flowers 드리프트 검사가 3시간 넘게 돌지 않았습니다. 러너와 예약 실행을 확인하세요"
 
       - alert: DriftCheckMissing       # 기록이 아예 없으면 위 규칙은 비교할 값이 없어 울리지 않는다 (Pushgateway가 비었을 때)
-        expr: absent(push_time_seconds{job="drift-flowers"})
+        expr: absent(push_time_seconds{job="drift-flowers-run"})
         for: 3h
         labels:
           severity: warning
           project: flowers
         annotations:
-          summary: "drift-flowers 드리프트 검사 기록이 3시간 넘게 없습니다 (검사가 결과를 남기지 못했거나 Pushgateway가 비었음)"
+          summary: "drift-flowers 드리프트 검사의 실행 기록이 3시간 넘게 없습니다 (검사가 돌지 못했거나 Pushgateway가 비었음)"
+
+      - alert: DriftCheckDeferred      # 검사는 도는데 요청이 적어 판단을 계속 미룬다 — 트래픽이 줄었거나, min_rows가 서비스 규모에 비해 크다
+        expr: ml_drift_check_deferred{job="drift-flowers-run"} == 1
+        for: 12h                       # 한 번이라도 판단하면 0이 되어 다시 센다
+        labels:
+          severity: warning
+          project: flowers
+        annotations:
+          summary: "drift-flowers 드리프트 검사가 표본 부족으로 12시간 넘게 판단을 미루고 있습니다. 요청이 줄었는지 확인하세요"

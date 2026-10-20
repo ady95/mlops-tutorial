@@ -22,6 +22,9 @@ serving:                               # 서버가 답한 버전 = 레지스트�
 
 prometheus: http://localhost:9090
 alertmanager: http://localhost:9093
-drift_max_age_hours:                   # 드리프트 검사 결과(Pushgateway)가 이보다 오래되면 실패 (12-3)
-  drift-flowers: 3                     # 매시 예약 실행. 지연·누락이 잦아(14-3) DriftCheckStale 규칙과 같은 3시간
-  drift-flower-support: 24             # 12장에서 수동 실행. 예약 실행이 없다
+drift_checks:                          # 드리프트 검사(12-3)가 이 시간 안에 돌았는가 (Pushgateway 기록 시각)
+  drift-flowers:
+    run_job: drift-flowers-run         # 결과와 따로 남기는 실행 기록. 요청이 적어 판단을 미룬 실행도 남는다 (14-5)
+    max_age_hours: 3                   # 매시 예약 실행. 지연·누락이 잦아(14-3) DriftCheckStale 규칙과 같은 3시간
+  drift-flower-support:
+    max_age_hours: 24                  # 12장에서 수동 실행. 예약 실행·실행 기록이 없어 결과 시각으로 본다

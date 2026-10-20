@@ -4,6 +4,7 @@
 2. 지금 champion에 붙은 기준 데이터(reference_run_id)를 받는다      → 기준 데이터
 3. Evidently로 특성마다 분포가 같은지 검정한다
 4. 결과 숫자는 Pushgateway로 (Prometheus 알림), 리포트(HTML)는 MLflow로 (사람이 원인 확인)
+5. 실행 기록은 결과와 다른 job(drift-flowers-run)으로 — 표본이 모자라 판단을 미룬 실행도 남긴다 (14-5)
 
 실행 (monitor 폴더에서):
     PREDICTION_LOG_DIR=~/work12/flowers-api/logs uv run python drift.py
@@ -51,6 +52,16 @@ def load_reference() -> tuple[str, pd.DataFrame]:
     return mv.version, pd.read_csv(path)
 
 
+def push_run(gateway: str, rows: int, deferred: bool):
+    """검사가 돌았다는 기록. 결과만 남기면, 요청이 적어 판단을 미룬 것과 검사가 멈춘 것을 알림이 구분하지 못한다 (14-5)."""
+    registry = CollectorRegistry()
+    labels = {"project": "flowers"}
+    Gauge("ml_drift_check_rows", "이번 검사가 본 예측 수", ["project"], registry=registry).labels(**labels).set(rows)
+    Gauge("ml_drift_check_deferred", "표본이 모자라 판단을 미뤘는가 (1=미룸)", ["project"],
+          registry=registry).labels(**labels).set(int(deferred))
+    push_to_gateway(gateway, job="drift-flowers-run", registry=registry)
+
+
 def check(current: pd.DataFrame, reference: pd.DataFrame):
     """특성마다 두 분포를 비교하고, '다름'인 특성이 drift_share 이상이면 데이터셋 드리프트."""
     definition = DataDefinition(numerical_columns=NUMERIC, categorical_columns=CATEGORICAL)
@@ -65,8 +76,10 @@ def main():
     version, reference = load_reference()
     if not current.empty:   # 예측·확신도는 모델마다 다르다 — 지금 champion이 낸 예측만 비교한다 (12-5)
         current = current[current["model_version"].astype(str) == str(version)]
-    if len(current) < config["min_rows"]:     # 표본이 적으면 검정 결과를 믿을 수 없다 — 판단을 미룬다
-        print(f"최근 {config['window_hours']}시간 예측 {len(current)}건 < {config['min_rows']}건: 검사를 건너뜁니다")
+    deferred = len(current) < config["min_rows"]   # 표본이 적으면 검정 결과를 믿을 수 없다 — 판단을 미룬다
+    push_run(config["pushgateway"], len(current), deferred)
+    if deferred:
+        print(f"최근 {config['window_hours']}시간 예측 {len(current)}건 < {config['min_rows']}건: 판단을 미룹니다 (실행 기록만 남김)")
         return
     snapshot = check(current, reference)
 

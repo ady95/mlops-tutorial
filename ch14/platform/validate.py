@@ -3,7 +3,7 @@
     uv run python validate.py
     uv run python validate.py --config validate.local.yaml     # 서버가 여러 대일 때 주소만 바꾼 사본
 
-1. 서비스가 살아 있는가                    4. 드리프트 검사가 멈추지 않았는가
+1. 서비스가 살아 있는가                    4. 드리프트 검사가 멈추지 않았는가 (판단 보류는 따로 표시)
 2. 서빙 중인 버전 = 레지스트리 champion인가   5. 묵음 처리되지 않은 알림이 울리고 있지 않은가
 3. 되돌릴 버전(previous)이 있는가          6. 운영 모델의 계보가 빠짐없는가 (14-1 lineage.py audit)
 """
@@ -47,6 +47,11 @@ def prom(query: str) -> list:
     return get(f"{CONFIG['prometheus']}/api/v1/query?" + urllib.parse.urlencode({"query": query}))["data"]["result"]
 
 
+def value(query: str) -> float | None:
+    found = prom(query)
+    return float(found[0]["value"][1]) if found else None
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--config", default=str(Path(__file__).with_name("validate.yaml")))
@@ -73,11 +78,17 @@ def main():
             check(f"{server}: {prompt} 서빙 v{health.get(key)} = production v{production}",
                   str(health.get(key)) == str(production))
 
-    for job, hours in CONFIG["drift_max_age_hours"].items():
-        found = prom(f'time() - push_time_seconds{{job="{job}"}}')
-        age = float(found[0]["value"][1]) / 3600 if found else None
-        check(f"드리프트 검사 {job}", age is not None and age <= hours,
-              f"마지막 결과 {age:.1f}시간 전 (기준 {hours}시간)" if age is not None else "기록 없음")
+    for job, spec in CONFIG["drift_checks"].items():
+        run_job, hours = spec.get("run_job", job), spec["max_age_hours"]
+        ran = value(f'time() - push_time_seconds{{job="{run_job}"}}')
+        detail = f"마지막 실행 {ran / 3600:.1f}시간 전 (기준 {hours}시간)" if ran is not None else "실행 기록 없음"
+        if run_job != job:                                       # 실행 기록과 결과를 나눠 남기는 검사 (14-5)
+            result = value(f'time() - push_time_seconds{{job="{job}"}}')
+            detail += f", 마지막 결과 {result / 3600:.1f}시간 전" if result is not None else ", 결과 없음"
+            if value(f'ml_drift_check_deferred{{job="{run_job}"}}') == 1:
+                rows = value(f'ml_drift_check_rows{{job="{run_job}"}}')
+                detail += f", 표본 부족으로 판단 보류 ({rows:.0f}건)"
+        check(f"드리프트 검사 {job}", ran is not None and ran / 3600 <= hours, detail)
 
     down = [r["metric"].get("job") for r in prom("up == 0")]
     check("Prometheus 수집 대상 모두 up", not down, ", ".join(down))
