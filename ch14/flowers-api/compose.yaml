@@ -1,0 +1,6 @@
+# 이미지 빌드용 (14-4). Kubernetes에서 실행하므로 여기서는 빌드만 한다: docker compose build
+# Dockerfile의 캐시 마운트(--mount)에 BuildKit이 필요하다. Compose는 BuildKit으로 빌드한다
+services:
+  api:
+    build: .
+    image: flowers-api:0.4.0

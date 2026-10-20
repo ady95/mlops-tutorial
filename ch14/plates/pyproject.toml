@@ -1,0 +1,51 @@
+[project]
+name = "ch14-plates"
+version = "0.1.0"
+description = "MLOps 따라하기 14장: 모델 두 개(검출 + 인식)로 된 번호판 인식 서비스"
+requires-python = ">=3.12"
+# 학습·평가와 서빙(app/)이 같이 쓴다
+dependencies = [
+    "mlflow==3.17.1",
+    "pillow==13.0.0",
+    "fastapi==0.143.3",
+    "uvicorn[standard]==0.54.0",
+    "python-multipart==0.0.32",
+    "prometheus-client==0.26.0",
+]
+
+[project.optional-dependencies]
+cpu = ["torch==2.14.1", "torchvision==0.29.1"]
+cu130 = ["torch==2.14.1", "torchvision==0.29.1"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "httpx==0.28.1",
+]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "cu130" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu130", extra = "cu130" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu130", extra = "cu130" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

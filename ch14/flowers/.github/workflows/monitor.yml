@@ -1,0 +1,28 @@
+# 매시간 드리프트 검사 (12-3): 예측 기록 vs champion의 기준 데이터 → Pushgateway(알림) + MLflow(리포트)
+# 드리프트를 찾아도 재학습을 자동으로 시작하지 않는다. 새 조건의 데이터를 모으고 라벨을 붙이는 것은 사람의 일이다 (12-5).
+name: monitor
+
+on:
+  schedule:
+    - cron: "17 * * * *"         # 매시 17분 (UTC). 정각은 몰려 늦어지기 쉽다. 이 줄을 고친 계정의 권한으로 실행된다
+  workflow_dispatch:
+
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: [self-hosted, mlops-cpu]
+    env:
+      MLFLOW_TRACKING_URI: http://localhost:5000
+      PREDICTION_LOG_DIR: ${{ vars.PREDICTION_LOG_DIR }}   # 저장소 변수: 추론 서버의 logs 폴더 (12-3)
+    defaults:
+      run:
+        working-directory: monitor
+    steps:
+      - uses: actions/checkout@v7
+      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: uv sync --frozen
+      - name: 드리프트 검사
+        run: uv run python drift.py | tee -a "$GITHUB_STEP_SUMMARY"

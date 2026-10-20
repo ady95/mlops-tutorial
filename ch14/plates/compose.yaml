@@ -1,0 +1,20 @@
+# 번호판 인식 API (14-2). 검출·인식 모델 두 개를 각자의 champion 별칭으로 불러온다.
+# 실행: echo "RELOAD_TOKEN=아무도-모르는-값" > .env && docker compose up -d --build
+
+services:
+  api:
+    build: .
+    image: plate-api:0.1.0
+    restart: unless-stopped
+    network_mode: host                                 # localhost:5000(MLflow)·9000(모델 파일)을 호스트와 똑같이 (06-2)
+    environment:
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://localhost:5000}
+      MODEL_ALIAS: champion
+      RELOAD_TOKEN: ${RELOAD_TOKEN:?.env에 RELOAD_TOKEN을 설정하세요}
+      TORCH_THREADS: ${TORCH_THREADS:-2}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s

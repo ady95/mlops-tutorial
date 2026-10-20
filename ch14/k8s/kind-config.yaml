@@ -1,0 +1,12 @@
+# 연습용 Kubernetes 클러스터 (14-4): Docker 컨테이너 3개가 노드 3대 역할을 한다
+#   kind create cluster --name mlops --config kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:                 # 호스트 127.0.0.1:30080 → 클러스터의 NodePort 30080 (flowers-api 서비스)
+      - containerPort: 30080
+        hostPort: 30080
+        listenAddress: "127.0.0.1"
+  - role: worker
+  - role: worker

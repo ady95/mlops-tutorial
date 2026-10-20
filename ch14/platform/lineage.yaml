@@ -1,0 +1,39 @@
+# 운영 중인 모델(champion)이 답할 수 있어야 하는 질문과, 프로젝트마다 그 답을 적어 둔 키 (14-1)
+# 모델 버전 태그 → 그 버전을 만든 학습 실행(run)의 태그·파라미터 순서로 찾는다.
+# 프로젝트 A·B·C는 장마다 따로 만들어서 같은 질문의 답을 다른 키에 적었다. 키를 하나로 고치기 전까지는 여기에 모두 적는다.
+questions:
+  code:                       # 어떤 코드로 만들었나
+    label: 코드
+    keys: [git_commit]
+  clean:                      # 커밋하지 않은 수정이 섞이지 않았나
+    label: 깨끗한 커밋
+    keys: [git_dirty]
+    expect: "False"
+  data:                       # 어떤 데이터로 학습했나
+    label: 데이터
+    keys: [data_prepared_md5, data_version]
+  evaluation:                 # 무엇으로 합격시켰나
+    label: 평가
+    keys: [test_f1_macro, eval_all_fields, gate_e2e_exact]
+  approval:                   # 누가 운영에 올렸나
+    label: 승인
+    keys: [approved_by]
+
+# 다른 기록으로 이어지는 키 — 계보를 따라갈 때 보여 준다
+links:
+  source_version: 원본 모델           # ONNX 변환본 → 원본 PyTorch 모델 (06-4)
+  base_revision: 베이스 모델 리비전   # LoRA 어댑터 → Hugging Face Hub 커밋 (8장)
+  prompt_uri: 프롬프트               # 어댑터와 짝인 프롬프트 버전 (9장)
+  gate_partner: 판정 때의 짝 모델     # 번호판 검출 ↔ 인식 (14-2)
+  crops_from_detector: 학습 조각을 만든 검출 모델   # 인식 모델의 학습 데이터가 다른 모델의 출력 (14-2)
+  reference_run_id: 드리프트 기준     # 학습 데이터 통계 (12-3)
+  zenml_pipeline_run_id: 파이프라인 실행   # ZenML (7장)
+
+# 실험 이름은 장 번호로 지었다(ch07-pipeline). 이름을 바꾸면 지난 기록의 링크가 깨지므로, 이름 대신 태그로 묶는다
+projects:
+  flowers: [ch04-flowers, ch05-evaluation, ch06-onnx, ch07-evaluation, ch07-pipeline, flowers-reference, flowers-drift,
+            retrain-recommendations]
+  flower-support: [ch08-flower-support, ch09-evaluation, ch11-probe, ch11-flower-support-serving, ch11-monitoring,
+                   ch12-flower-support-serving, flower-support-drift]
+  plates: [ch14-plates]
+  platform: [ch02-first-run, ch13-ops-agent, Default]

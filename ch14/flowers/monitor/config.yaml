@@ -1,0 +1,12 @@
+# 드리프트 검사 설정 (12-3). 학습 설정(params.yaml)과 분리해 두어, 여기를 고쳐도 재학습이 돌지 않는다.
+window_hours: 6            # 최근 몇 시간의 예측을 볼 것인가
+min_rows: 300              # 이보다 적으면 검사를 건너뛴다
+drift_share: 0.5           # 특성 중 이 비율 이상이 달라지면 데이터셋 드리프트
+# 검정 방법: 표본이 수천 건이면 p-value 검정(K-S, 카이제곱)은 아주 작은 차이도 '다름'으로 본다.
+# 평소 구간에서 특성 5개 중 3개가 '다름'으로 나왔다 (12-3 실측). 차이의 크기를 재는 거리로 바꾼다.
+num_method: wasserstein    # 기준 표준편차로 나눈 거리. 0.1 = 표준편차의 10%만큼 이동
+cat_method: jensenshannon  # 범주 비율의 거리 (0~1)
+threshold: 0.1
+numeric: [brightness, contrast, warmth, confidence]
+categorical: [predicted_class]
+pushgateway: localhost:9091

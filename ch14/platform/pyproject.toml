@@ -1,0 +1,9 @@
+[project]
+name = "ch14-platform"
+version = "0.1.0"
+description = "MLOps 따라하기 14장: 프로젝트 A·B·C 통합 관리 도구 (계보 조회·점검)"
+requires-python = ">=3.12"
+dependencies = [
+    "mlflow-skinny==3.17.1",
+    "pyyaml>=6",
+]

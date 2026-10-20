@@ -1,0 +1,27 @@
+# 최종 시스템 점검 대상 (14-5). 주소는 한 PC에 모두 띄운 기준이다. 서버가 여러 대면 주소만 바꾼다
+health:                                # 200이면 살아 있다
+  MLflow: http://localhost:5000/health
+  RustFS: http://localhost:9000/health
+  ZenML: http://localhost:8080/health
+  Prometheus: http://localhost:9090/-/healthy
+  Alertmanager: http://localhost:9093/-/healthy
+  Pushgateway: http://localhost:9091/-/healthy
+  Grafana: http://localhost:3000/api/health
+
+serving:                               # 서버가 답한 버전 = 레지스트리 champion(프롬프트는 production)인가
+  flowers-api:                         # 프로젝트 A (6·12장)
+    url: http://localhost:8000/health
+    models: {model_version: flowers-classifier}
+  llm-gateway:                         # 프로젝트 B (10·11장)
+    url: http://localhost:8002/health
+    models: {model_version: flower-support-adapter}
+    prompts: {prompt_version: flower-support-extract}
+  plate-api:                           # 프로젝트 C (14-2)
+    url: http://localhost:8010/health
+    models: {detector: plate-detector, recognizer: plate-recognizer}
+
+prometheus: http://localhost:9090
+alertmanager: http://localhost:9093
+drift_max_age_hours:                   # 드리프트 검사 결과(Pushgateway)가 이보다 오래되면 실패 (12-3)
+  drift-flowers: 3                     # 매시 예약 실행. 지연·누락이 잦아(14-3) DriftCheckStale 규칙과 같은 3시간
+  drift-flower-support: 24             # 12장에서 수동 실행. 예약 실행이 없다

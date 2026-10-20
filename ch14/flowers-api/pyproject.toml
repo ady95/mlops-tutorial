@@ -1,0 +1,48 @@
+[project]
+name = "ch14-flowers-api"
+version = "0.1.0"
+description = "MLOps 따라하기 14장: 꽃 분류 추론 서버 (Kubernetes 배포용, 버전 고정)"
+requires-python = ">=3.12"
+# 추론 서버 실행에 필요한 것만 (Docker 이미지에 들어감)
+dependencies = [
+    "mlflow==3.17.1",
+    "fastapi==0.143.3",
+    "uvicorn[standard]==0.54.0",
+    "python-multipart==0.0.32",
+    "pillow==13.0.0",
+    "onnxruntime==1.31.0",
+    "prometheus-client==0.26.0",
+]
+
+[project.optional-dependencies]
+cpu = ["torch==2.14.1", "torchvision==0.29.1"]
+cu130 = ["torch==2.14.1", "torchvision==0.29.1"]
+
+# 부하 도구 (14-4 traffic.py) — Docker 이미지에는 넣지 않음
+[dependency-groups]
+dev = [
+    "httpx==0.28.1",
+]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "cu130" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu130", extra = "cu130" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu130", extra = "cu130" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
