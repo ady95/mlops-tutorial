@@ -36,11 +36,13 @@ services:
   pushgateway:                                # 잠깐 돌고 끝나는 작업(드리프트 검사)이 지표를 맡겨 두는 곳 (12-3)
     image: prom/pushgateway:v1.11.2
     command:
-      - --persistence.file=/data/metrics
+      - --persistence.file=/pushgateway/metrics   # 재시작해도 맡긴 값을 유지 (5분마다·종료 시 저장)
     ports:
       - "127.0.0.1:9091:9091"
     volumes:
-      - pushgateway-data:/data
+      # 컨테이너는 nobody 계정으로 돈다. 이미지에서 nobody 소유인 /pushgateway에 붙여야 쓸 수 있다
+      # (/data에 붙였더니 root 소유라 저장이 실패했고, 재부팅 때 드리프트 결과가 모두 사라졌다 — 12-4 실측)
+      - pushgateway-data:/pushgateway
     restart: unless-stopped
 
   grafana:

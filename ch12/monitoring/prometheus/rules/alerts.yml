@@ -136,3 +136,12 @@ groups:
           project: flowers
         annotations:
           summary: "{{ $labels.job }} 드리프트 검사가 3시간 넘게 돌지 않았습니다"
+
+      - alert: DriftCheckMissing       # 기록이 아예 없으면 위 규칙은 비교할 값이 없어 울리지 않는다 (Pushgateway가 비었을 때)
+        expr: absent(push_time_seconds{job="drift-flowers"})
+        for: 3h
+        labels:
+          severity: warning
+          project: flowers
+        annotations:
+          summary: "drift-flowers 드리프트 검사 기록이 3시간 넘게 없습니다 (검사가 결과를 남기지 못했거나 Pushgateway가 비었음)"
