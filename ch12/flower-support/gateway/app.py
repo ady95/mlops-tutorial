@@ -6,6 +6,7 @@
   - 응답에 request_id(트레이스 ID)를 담아, 고객 문의 처리 결과를 나중에 찾아볼 수 있게 한다
 """
 
+import asyncio
 import json
 import os
 import time
@@ -84,8 +85,23 @@ def resolve() -> tuple[str, str]:
     return mv.version, str(prompt.version)
 
 
+async def wait_for_vllm(timeout_s: int = 900):
+    """vLLM이 준비될 때까지 기다린다. compose의 depends_on(service_healthy)은 docker compose up 때만 지켜지고,
+    서버 재부팅 뒤 Docker가 컨테이너를 다시 띄울 때는 무시된다 — 기다리지 않으면 재시작을 반복한다 (12장 실측: 15번)."""
+    async with httpx.AsyncClient() as http:
+        for _ in range(timeout_s // 5):
+            try:
+                if (await http.get(f"{VLLM}/health", timeout=5)).status_code == 200:
+                    return
+            except httpx.HTTPError:
+                pass
+            await asyncio.sleep(5)
+    raise RuntimeError(f"{VLLM}이 {timeout_s}초 안에 준비되지 않았습니다")
+
+
 @asynccontextmanager
 async def lifespan(_):
+    await wait_for_vllm()
     mlflow.set_experiment(TRACE_EXPERIMENT)
     if os.environ.get("TRACING", "on") == "off":    # 기록 비용을 재려고 끌 수 있게 (11-2)
         mlflow.tracing.disable()
