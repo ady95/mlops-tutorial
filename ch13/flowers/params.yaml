@@ -1,0 +1,30 @@
+validate:
+  min_side: 100              # 짧은 변이 이보다 작으면 제외 (픽셀)
+  near_dup_distance: 4       # 차이 해시(dHash) 거리가 이 값 이하이면 같은 사진으로 본다
+  max_exclude_ratio: 0.05    # 제외 비율이 이보다 크면 파이프라인을 멈춘다
+  min_per_class: 500         # 클래스별 남은 이미지가 이보다 적으면 파이프라인을 멈춘다
+
+prepare:
+  image_size: 224            # 짧은 변을 맞춘 뒤 가운데를 정사각형으로 자른다
+  val_ratio: 0.15
+  test_ratio: 0.15
+  seed: 42
+
+gate:                        # 배포 승인 기준 (05-4)
+  min_test_f1: 0.85          # 테스트 세트 macro F1 하한
+  max_latency_ms: 20         # CPU 추론 1장 상한 (밀리초)
+  max_f1_drop: 0.0           # 현재 champion보다 F1이 이만큼 넘게 떨어지면 불가
+  require_clean_git: true    # 커밋되지 않은 변경 위에서 학습한 모델은 불가 (재현성)
+  min_slice_f1:              # 조각별 F1 하한 (12-5). 조각이 테스트 세트에 없으면 불가
+    night: 0.80              # 새 조건(야간·실내)은 기존 조건보다 낮은 하한에서 시작한다
+  max_slice_drop: 0.02       # 조각마다 champion 대비 하락 상한 — 새 조건을 배우며 기존 조건을 잊지 않았는가
+
+train:                       # 학습 설정 (07-2) — 5장 champion과 같은 설정
+  model: mobilenet_v3_small
+  epochs: 5
+  batch_size: 32
+  lr: 0.0001
+  freeze_backbone: false
+  seed: 42
+  deterministic: false
+  num_workers: 2

@@ -1,0 +1,23 @@
+# 코딩 에이전트에게 주는 작업 (13-1). 사람이 쓰는 작업 요청서(티켓)와 같은 수준으로 적는다.
+# 함수 이름과 인자는 정해 준다 — 숨은 인수 테스트(acceptance)가 그 이름으로 부르기 때문이다.
+- id: T1
+  title: 클래스별 F1 하한을 배포 판정에 더하기
+  request: |
+    배포 판정(src/registry.py의 judge)에 클래스별 F1 하한을 더해 주세요.
+    - params.yaml의 gate에 min_class_f1: 0.80 을 추가합니다.
+    - judge(tags, champion_tags, gate)는 gate에 min_class_f1이 있으면 다섯 클래스(daisy, dandelion, roses, sunflowers, tulips)
+      각각에 대해 tags의 test_f1_<클래스> 값이 하한 이상인지 검사 항목을 하나씩 더합니다.
+      검사 항목 설명에는 클래스 이름이 들어가야 합니다. 태그가 없는 클래스는 불가로 판정합니다.
+    - evaluate()는 테스트 세트의 클래스별 F1을 test_f1_<클래스> 태그로 함께 기록합니다.
+    - 단위 테스트를 tests/에 추가하고, 기존 테스트를 포함해 모두 통과해야 합니다.
+- id: T2
+  title: 학습 데이터 수량 점검
+  request: |
+    학습 데이터의 클래스별 수량이 부족하면 파이프라인을 멈추게 해 주세요.
+    - src/registry.py에 check_class_counts(prepare_report: dict, minimum: int) -> list[str] 를 추가합니다.
+      prepare_report는 reports/prepare.json을 읽은 dict이고, per_class.train에서 minimum 미만인 클래스 이름을
+      이름순으로 돌려줍니다. 없으면 빈 리스트입니다.
+    - params.yaml에 data_gate: { min_train_per_class: 400 } 을 추가합니다.
+    - pipeline/steps.py의 prepare_data에서 dvc repro 뒤에 reports/prepare.json을 읽어 검사하고,
+      미달 클래스가 있으면 클래스 이름을 담은 RuntimeError로 멈춥니다.
+    - 단위 테스트를 tests/에 추가하고, 기존 테스트를 포함해 모두 통과해야 합니다.

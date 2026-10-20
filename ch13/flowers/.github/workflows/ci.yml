@@ -1,0 +1,17 @@
+# 모든 push와 PR: 단위 테스트만 (GitHub 러너, 우리 서버를 쓰지 않음) (07-4)
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0     # setup-uv는 v7 이후 주 버전 태그(v10)를 만들지 않는다
+        with:
+          version: "0.13.1"
+      - run: uv sync --frozen --extra cpu
+      - run: uv run pytest -q

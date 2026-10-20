@@ -1,0 +1,29 @@
+# 사람이 실행해야 도는 배포 (07-5): champion 승격 → 추론 서버 reload → 확인 (실패 시 되돌림)
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "champion으로 올릴 모델 버전 (비우면 challenger 버전)"
+        required: false
+        default: ""
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, mlops-cpu]
+    environment: production            # 승인자를 지정할 수 있는 플랜이면 여기서 승인을 기다린다
+    env:
+      MLFLOW_TRACKING_URI: http://localhost:5000
+      API_URL: http://localhost:8000
+      RELOAD_TOKEN: ${{ secrets.RELOAD_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: uv sync --frozen --extra cpu
+      - name: 승격과 서버 반영
+        run: uv run python -m src.deploy "${{ inputs.version }}"

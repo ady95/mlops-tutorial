@@ -1,0 +1,37 @@
+# 에이전트 제안 승인 (13-5): 'agent-proposal' 이슈에 저장소 권한이 있는 사람이 /approve를 달면, 허용된 조치만 실행한다.
+# 에이전트는 이슈를 여는 권한만 있고, 실행 권한(시크릿·러너)은 이 워크플로가 쥔다.
+name: approve
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write          # 결과 댓글, 이슈 닫기
+  actions: write         # retrain: pipeline 워크플로 실행
+  contents: read
+
+jobs:
+  execute:
+    if: >-
+      !github.event.issue.pull_request &&
+      contains(github.event.issue.labels.*.name, 'agent-proposal') &&
+      startsWith(github.event.comment.body, '/approve') &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: [self-hosted, mlops-cpu]
+    concurrency:
+      group: deploy        # deploy 워크플로와 같은 줄 — 배포가 겹치지 않게
+      cancel-in-progress: false
+    env:
+      MLFLOW_TRACKING_URI: http://localhost:5000
+      API_URL: http://localhost:8000
+      RELOAD_TOKEN: ${{ secrets.RELOAD_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ISSUE: ${{ github.event.issue.number }}
+      APPROVER: ${{ github.event.comment.user.login }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: uv sync --frozen --extra cpu
+      - name: 승인된 조치 실행
+        run: uv run python -m src.actions

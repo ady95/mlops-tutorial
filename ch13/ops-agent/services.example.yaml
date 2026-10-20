@@ -1,0 +1,9 @@
+# 서비스 이름 → 로그를 읽는 명령 (13-2). services.yaml로 복사해 쓴다.
+# 에이전트는 이 목록에 있는 서비스의 로그만 읽을 수 있다 — 임의의 명령을 실행하지 못하게.
+# 다른 서버의 컨테이너라면 "ssh <서버> docker logs <컨테이너>"처럼 적는다.
+flowers-api: docker logs flowers-api-api-1
+llm-gateway: docker logs serving-gateway-1
+vllm: docker logs serving-vllm-1
+prometheus: docker logs monitoring-prometheus-1
+pushgateway: docker logs monitoring-pushgateway-1
+alertmanager: docker logs monitoring-alertmanager-1
