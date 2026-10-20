@@ -1,7 +1,7 @@
 # Alertmanager 설정 (12-4): 묶고(group), 미루고(wait), 덜 보내고(repeat), 가린다(inhibit).
 route:
   receiver: team
-  group_by: [alertname, service, project]   # 같은 알림이 여러 대상에서 나도 한 통으로. project가 빠지면 두 프로젝트의 드리프트가 한 묶음이 된다 (12-4 실측)
+  group_by: [alertname, service, project, job]   # 같은 알림이 여러 대상에서 나도 한 통으로. 구분 라벨이 빠지면 다른 알림이 한 묶음이 되어 재전송된다 (12-4 실측)
   group_wait: 30s                  # 첫 알림 전에 30초 기다려 같이 터진 것을 모은다
   group_interval: 5m               # 같은 묶음에 새 알림이 더해지면 5분 간격으로
   repeat_interval: 4h              # 해결되지 않은 알림을 다시 보내는 간격
