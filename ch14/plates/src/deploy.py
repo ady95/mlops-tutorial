@@ -52,7 +52,7 @@ def switch(kind: str, new: str, old: str | None, reload: bool) -> None:
     client = mlflow.MlflowClient()
     check_pair(client, kind, new)
     start = time.perf_counter()
-    old_previous = alias_version(client, kind, "previous")
+    before = {a: alias_version(client, kind, a) for a in ("champion", "previous")}   # 실패하면 이 상태로
     if old:
         client.set_registered_model_alias(NAMES[kind], "previous", old)
     client.set_registered_model_alias(NAMES[kind], "champion", new)
@@ -62,12 +62,13 @@ def switch(kind: str, new: str, old: str | None, reload: bool) -> None:
         print(f"{NAMES[kind]} champion v{old} → v{new} ({time.perf_counter() - start:.1f}초)")
         return
     print("서버가 새 버전으로 응답하지 않습니다. 레지스트리를 되돌립니다.")
-    if old:
-        client.set_registered_model_alias(NAMES[kind], "champion", old)
-        if not reload_and_check(kind, old):
-            print("경고: 서버 상태를 직접 확인하세요 (/health).")
-    if old_previous:
-        client.set_registered_model_alias(NAMES[kind], "previous", old_previous)
+    for alias, version in before.items():          # 원래 없던 별칭은 지운다
+        if version:
+            client.set_registered_model_alias(NAMES[kind], alias, version)
+        elif alias_version(client, kind, alias):
+            client.delete_registered_model_alias(NAMES[kind], alias)
+    if not old or not reload_and_check(kind, old):
+        print("경고: 서버 상태를 직접 확인하세요 (/health).")
     sys.exit(1)
 
 

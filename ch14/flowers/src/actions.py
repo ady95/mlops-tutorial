@@ -73,15 +73,17 @@ def restore(version: str) -> str:
     client = mlflow.MlflowClient()
     if "approved_by" not in client.get_model_version(name, version).tags:
         return f"되돌리지 않음: v{version}은 승인을 거쳐 운영된 적이 없음 (deploy로 판정부터)\n(종료 코드 1)"
-    current = client.get_model_version_by_alias(name, "champion").version
+    from src.registry import restore_aliases
+    before = dict(client.get_registered_model(name).aliases)
+    current = before["champion"]
     client.set_registered_model_alias(name, "champion", version)
     client.set_registered_model_alias(name, "previous", current)
     api, token = os.environ["API_URL"], os.environ["RELOAD_TOKEN"]
     r = httpx.post(f"{api}/reload", headers={"X-Reload-Token": token}, timeout=120)
     served = httpx.get(f"{api}/health", timeout=10).json()["model_version"]
     if served != version:
-        client.set_registered_model_alias(name, "champion", current)
-        return f"서버가 v{served}로 응답 — 별칭을 v{current}로 되돌림\n(종료 코드 1)"
+        restore_aliases(client, before)                  # champion·previous 모두 실행 전으로
+        return f"서버가 v{served}로 응답 — 별칭을 실행 전으로 되돌림\n(종료 코드 1)"
     client.set_model_version_tag(name, version, "restored_by", os.environ.get("APPROVER", "approver"))
     return f"champion v{current} → v{version} 되돌림, reload {r.json()} → 서버 응답 v{served}\n(종료 코드 0)"
 

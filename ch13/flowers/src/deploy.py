@@ -14,7 +14,7 @@ import httpx
 import mlflow
 import yaml
 
-from src.registry import NAME, champion_tags, compared_champion, judge
+from src.registry import NAME, champion_tags, compared_champion, judge, restore_aliases
 
 client = mlflow.MlflowClient()
 version = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] else \
@@ -54,9 +54,9 @@ for text, ok in checks:
 if not all(ok for _, ok in checks):
     sys.exit("배포 중단: 승인 기준 불통과")
 
-# 2. 별칭 변경 (실패하면 되돌릴 수 있게 지금 상태를 기억해 둔다)
+# 2. 별칭 변경 (실패하면 되돌릴 수 있게 지금 별칭 전체를 기억해 둔다)
 start = time.perf_counter()
-old_previous = client.get_registered_model(NAME).aliases.get("previous")
+before = dict(client.get_registered_model(NAME).aliases)
 if champ_version and champ_version != version:
     client.set_registered_model_alias(NAME, "previous", champ_version)
 client.set_registered_model_alias(NAME, "champion", version)
@@ -70,10 +70,7 @@ if reload_and_check(version):
     print(f"배포 완료: champion v{version} ({time.perf_counter() - start:.1f}초)")
 else:
     print("서버가 새 버전으로 응답하지 않습니다. 레지스트리를 되돌립니다.")
-    if champ_version:
-        client.set_registered_model_alias(NAME, "champion", champ_version)
-    if old_previous:
-        client.set_registered_model_alias(NAME, "previous", old_previous)
-    if not reload_and_check(champ_version):
+    restore_aliases(client, before)              # 원래 없던 별칭은 지운다
+    if not champ_version or not reload_and_check(champ_version):
         print("경고: 서버 상태를 직접 확인하세요 (/health).")
     sys.exit(1)

@@ -123,3 +123,14 @@ def champion_tags() -> tuple[str | None, dict | None]:
         return mv.version, mv.tags
     except mlflow.exceptions.MlflowException:
         return None, None
+
+
+def restore_aliases(client, before: dict, aliases=("champion", "previous")) -> None:
+    """배포가 실패했을 때 별칭을 실행 전 상태로 되돌린다. 실행 전에 없던 별칭은 지운다 —
+    처음 배포에서 만든 previous가 남으면, 되돌릴 버전이 없는데 있는 것처럼 보인다."""
+    now = client.get_registered_model(NAME).aliases
+    for alias in aliases:
+        if alias in before:
+            client.set_registered_model_alias(NAME, alias, before[alias])
+        elif alias in now:
+            client.delete_registered_model_alias(NAME, alias)
