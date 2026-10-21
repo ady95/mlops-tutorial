@@ -86,9 +86,13 @@ def incremental_split(groups_by_class: dict) -> dict:
 
 # 클래스별로 "묶음" 목록을 만든다. 묶이지 않은 사진은 혼자서 한 묶음이다.
 groups_by_class = defaultdict(lambda: defaultdict(list))
+excluded_copies = 0
 for path in sorted(raw_dir.glob("*/*.jpg")):
     rel = path.relative_to(raw_dir).as_posix()
     if rel in excluded:
+        continue
+    if is_copy(rel) and original(rel) in excluded:         # 제외된 원본의 사본도 뺀다 (라벨 충돌 사진이 사본으로 되살아나지 않게)
+        excluded_copies += 1
         continue
     groups_by_class[path.parent.name][group_key(rel)].append(rel)
 
@@ -118,7 +122,7 @@ night = Counter(sp for r, sp in assignment.items() if is_copy(r))
 metrics = {"image_size": size, "train": counts["train"], "val": counts["val"], "test": counts["test"],
            "night": {s: night[s] for s in ("train", "val", "test")},
            "new_originals": sum(1 for r in assignment if not is_copy(r) and r not in frozen) if frozen else 0,
-           "per_class": per_class, "groups_split_across_sets": leaks}
+           "per_class": per_class, "groups_split_across_sets": leaks, "excluded_copies": excluded_copies}
 Path("reports").mkdir(exist_ok=True)
 json.dump(metrics, open("reports/prepare.json", "w"), indent=2, ensure_ascii=False)
 print(json.dumps(metrics, indent=2, ensure_ascii=False))

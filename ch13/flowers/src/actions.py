@@ -79,13 +79,31 @@ def restore(version: str) -> str:
     client.set_registered_model_alias(name, "champion", version)
     client.set_registered_model_alias(name, "previous", current)
     api, token = os.environ["API_URL"], os.environ["RELOAD_TOKEN"]
-    r = httpx.post(f"{api}/reload", headers={"X-Reload-Token": token}, timeout=120)
-    served = httpx.get(f"{api}/health", timeout=10).json()["model_version"]
+    try:                                                 # 별칭을 바꾼 뒤부터는 어떤 실패든 실행 전으로 되돌린다
+        served, problem = reload_served(api, token), None
+    except (httpx.HTTPError, KeyError, ValueError) as e:  # 연결 실패·시간 초과·HTTP 오류·응답 형식 오류
+        served, problem = None, f"{type(e).__name__}: {e}"
     if served != version:
         restore_aliases(client, before)                  # champion·previous 모두 실행 전으로
-        return f"서버가 v{served}로 응답 — 별칭을 실행 전으로 되돌림\n(종료 코드 1)"
+        try:
+            back = reload_served(api, token) == current  # 서버가 이미 바뀌었을 수 있으므로 원래 champion을 다시 반영
+        except (httpx.HTTPError, KeyError, ValueError):
+            back = False
+        why = problem or f"서버가 v{served}로 응답"
+        tail = f"서버도 v{current}로 확인" if back else "서버 상태를 직접 확인하세요 (/health)"
+        return f"{why} — 별칭을 실행 전으로 되돌림, {tail}\n(종료 코드 1)"
     client.set_model_version_tag(name, version, "restored_by", os.environ.get("APPROVER", "approver"))
-    return f"champion v{current} → v{version} 되돌림, reload {r.json()} → 서버 응답 v{served}\n(종료 코드 0)"
+    return f"champion v{current} → v{version} 되돌림 → 서버 응답 v{served}\n(종료 코드 0)"
+
+
+def reload_served(api: str, token: str) -> str:
+    """서버에 reload를 요청하고 /health가 답한 버전을 돌려준다. 두 응답 모두 HTTP 상태를 확인한다 —
+    reload가 500이어도 health가 그 버전을 답하면 성공으로 치는 일이 없게."""
+    r = httpx.post(f"{api}/reload", headers={"X-Reload-Token": token}, timeout=120)
+    r.raise_for_status()
+    h = httpx.get(f"{api}/health", timeout=10)
+    h.raise_for_status()
+    return h.json()["model_version"]
 
 
 def comment(text: str):

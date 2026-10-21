@@ -4,7 +4,9 @@
 2. 지금 champion에 붙은 기준 데이터(reference_run_id)를 받는다      → 기준 데이터
 3. Evidently로 특성마다 분포가 같은지 검정한다
 4. 결과 숫자는 Pushgateway로 (Prometheus 알림), 리포트(HTML)는 MLflow로 (사람이 원인 확인)
-5. 실행 기록은 결과와 다른 job(drift-flowers-run)으로 — 표본이 모자라 판단을 미룬 실행도 남긴다 (14-5)
+5. 실행 기록은 결과와 다른 job(drift-flowers-run)으로 — 표본이 모자라 판단을 미룬 실행도 남긴다 (14-5).
+   판단하는 실행은 결과를 MLflow·Pushgateway에 모두 남긴 뒤에야 기록한다. 중간에 실패하면 기록이 갱신되지 않아
+   DriftCheckStale이 잡는다 (14장 검수에서 고침)
 
 실행 (monitor 폴더에서):
     PREDICTION_LOG_DIR=~/work12/flowers-api/logs uv run python drift.py
@@ -76,9 +78,8 @@ def main():
     version, reference = load_reference()
     if not current.empty:   # 예측·확신도는 모델마다 다르다 — 지금 champion이 낸 예측만 비교한다 (12-5)
         current = current[current["model_version"].astype(str) == str(version)]
-    deferred = len(current) < config["min_rows"]   # 표본이 적으면 검정 결과를 믿을 수 없다 — 판단을 미룬다
-    push_run(config["pushgateway"], len(current), deferred)
-    if deferred:
+    if len(current) < config["min_rows"]:          # 표본이 적으면 검정 결과를 믿을 수 없다 — 판단을 미룬다
+        push_run(config["pushgateway"], len(current), deferred=True)
         print(f"최근 {config['window_hours']}시간 예측 {len(current)}건 < {config['min_rows']}건: 판단을 미룹니다 (실행 기록만 남김)")
         return
     snapshot = check(current, reference)
@@ -112,6 +113,8 @@ def main():
     for c, f in features.items():
         g.labels(feature=c, **labels).set(int(f["drifted"]))
     push_to_gateway(config["pushgateway"], job="drift-flowers", registry=registry)
+    # 3) 결과를 모두 남긴 뒤에야 실행 기록 — 위에서 실패하면 기록이 갱신되지 않아 DriftCheckStale이 잡는다
+    push_run(config["pushgateway"], len(current), deferred=False)
 
     print(f"champion v{version} 기준 {len(reference)}행 vs 최근 {len(current)}건: 드리프트 특성 비율 {share:.2f}")
     for c, f in features.items():

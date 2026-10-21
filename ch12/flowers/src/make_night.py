@@ -10,6 +10,7 @@
 """
 
 import argparse
+import json
 import random
 import zlib
 from pathlib import Path
@@ -38,13 +39,20 @@ if __name__ == "__main__":
     parser.add_argument("--fraction", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=7)
     args = parser.parse_args()
+    validation = Path("data/interim/validation.json")
+    if not validation.exists():
+        raise SystemExit("먼저 dvc repro로 품질 검사를 돌리세요 — 검사에서 제외된 원본은 사본을 만들지 않습니다")
+    excluded = set(json.load(open(validation))["excluded"])    # 라벨 충돌·중복·손상 — 사본으로 되살리지 않는다
     rng = random.Random(args.seed)
-    total = 0
+    total = skipped = 0
     for class_dir in sorted(p for p in Path("data/raw").iterdir() if p.is_dir()):
         originals = sorted(p for p in class_dir.glob("*.jpg") if not p.name.startswith(PREFIX))
-        for path in rng.sample(originals, round(len(originals) * args.fraction)):
+        for path in rng.sample(originals, round(len(originals) * args.fraction)):   # 고르는 방식은 그대로
+            if f"{class_dir.name}/{path.name}" in excluded:
+                skipped += 1
+                continue
             with Image.open(path) as img:
                 to_night(img, seed_of(path.name)).save(class_dir / f"{PREFIX}{path.name}", quality=90)
             total += 1
-        print(f"{class_dir.name}: {round(len(originals) * args.fraction)}장")
-    print(f"합계 {total}장")
+        print(f"{class_dir.name}: {round(len(originals) * args.fraction)}장 골라 만듦")
+    print(f"합계 {total}장 (검사에서 제외된 원본 {skipped}장은 건너뜀)")

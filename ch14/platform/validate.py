@@ -52,6 +52,25 @@ def value(query: str) -> float | None:
     return float(found[0]["value"][1]) if found else None
 
 
+def drift_status(job: str, spec: dict) -> tuple[bool, str]:
+    """검사가 기준 시간 안에 돌았는가. 실행 기록을 따로 남기는 검사(14-5)는, 판단을 미룬 게 아니라면
+    결과도 기준 시간 안에 있어야 통과다 — 실행은 했는데 결과를 못 남긴 경우를 잡는다."""
+    run_job, hours = spec.get("run_job", job), spec["max_age_hours"]
+    ran = value(f'time() - push_time_seconds{{job="{run_job}"}}')
+    ok = ran is not None and ran / 3600 <= hours
+    detail = f"마지막 실행 {ran / 3600:.1f}시간 전 (기준 {hours}시간)" if ran is not None else "실행 기록 없음"
+    if run_job != job:
+        result = value(f'time() - push_time_seconds{{job="{job}"}}')
+        detail += f", 마지막 결과 {result / 3600:.1f}시간 전" if result is not None else ", 결과 없음"
+        if value(f'ml_drift_check_deferred{{job="{run_job}"}}') == 1:
+            rows = value(f'ml_drift_check_rows{{job="{run_job}"}}')
+            detail += f", 표본 부족으로 판단 보류 ({rows:.0f}건)"
+        elif result is None or result / 3600 > hours:
+            ok = False
+            detail += " — 판단한 실행인데 결과가 없거나 오래됨"
+    return ok, detail
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--config", default=str(Path(__file__).with_name("validate.yaml")))
@@ -79,16 +98,7 @@ def main():
                   str(health.get(key)) == str(production))
 
     for job, spec in CONFIG["drift_checks"].items():
-        run_job, hours = spec.get("run_job", job), spec["max_age_hours"]
-        ran = value(f'time() - push_time_seconds{{job="{run_job}"}}')
-        detail = f"마지막 실행 {ran / 3600:.1f}시간 전 (기준 {hours}시간)" if ran is not None else "실행 기록 없음"
-        if run_job != job:                                       # 실행 기록과 결과를 나눠 남기는 검사 (14-5)
-            result = value(f'time() - push_time_seconds{{job="{job}"}}')
-            detail += f", 마지막 결과 {result / 3600:.1f}시간 전" if result is not None else ", 결과 없음"
-            if value(f'ml_drift_check_deferred{{job="{run_job}"}}') == 1:
-                rows = value(f'ml_drift_check_rows{{job="{run_job}"}}')
-                detail += f", 표본 부족으로 판단 보류 ({rows:.0f}건)"
-        check(f"드리프트 검사 {job}", ran is not None and ran / 3600 <= hours, detail)
+        check(f"드리프트 검사 {job}", *drift_status(job, spec))
 
     down = [r["metric"].get("job") for r in prom("up == 0")]
     check("Prometheus 수집 대상 모두 up", not down, ", ".join(down))
