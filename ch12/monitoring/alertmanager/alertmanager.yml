@@ -21,7 +21,8 @@ receivers:
         send_resolved: true
 
 inhibit_rules:
-  # 서비스가 멈췄으면 그 서비스의 품질 알림(지연·확신도 등)은 보내지 않는다 — 원인은 하나다
+  # 서비스가 멈췄으면 그 서비스의 품질 알림(지연·확신도 등)은 보내지 않는다 —
+  # 원인은 하나다
   - source_matchers: [alertname="ServiceDown"]
     target_matchers: [severity="warning"]
     equal: [service]

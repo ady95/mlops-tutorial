@@ -31,7 +31,8 @@ MODELS = {
     "resnet18": (models.resnet18, models.ResNet18_Weights.DEFAULT),
     "efficientnet_b0": (models.efficientnet_b0, models.EfficientNet_B0_Weights.DEFAULT),
 }
-MEAN, STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)   # ImageNet 사전학습 모델의 정규화 값
+# ImageNet 사전학습 모델의 정규화 값
+MEAN, STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
 
 
 def build_model(name, num_classes, freeze_backbone):

@@ -26,13 +26,15 @@ services:
       RUSTFS_SECRET_KEY: ${S3_SECRET_KEY}
       RUSTFS_CONSOLE_ENABLE: "true"
     ports:
-      - "5000:5000"   # MLflow UI/API (mlflow 서비스가 이 컨테이너의 네트워크를 함께 씀)
+      # MLflow UI/API (mlflow 서비스가 이 컨테이너의 네트워크를 함께 씀)
+      - "5000:5000"
       - "9000:9000"   # S3 API (DVC 원격 저장소로도 사용 — 3장)
       - "9001:9001"   # 웹 콘솔
     volumes:
       - s3data:/data
 
-  # 버킷(mlflow: 모델·아티팩트, dvc: 데이터 버전 — 3장)을 한 번 만들고 종료하는 초기화 작업 (MLflow 이미지의 boto3 사용)
+  # 버킷(mlflow: 모델·아티팩트, dvc: 데이터 버전 — 3장)을 한 번 만들고 종료하는
+  # 초기화 작업 (MLflow 이미지의 boto3 사용)
   create-bucket:
     image: ghcr.io/mlflow/mlflow:v3.17.1-full
     depends_on:

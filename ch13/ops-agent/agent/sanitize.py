@@ -7,12 +7,16 @@
 import re
 
 RULES = [
-    (re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?\b"), "<내부주소>"),            # IPv4(:포트)
+    # IPv4(:포트)
+    (re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?\b"), "<내부주소>"),
     (re.compile(r"/home/[^/\s\"']+"), "/home/user"),                                # 계정 이름이 든 경로
     (re.compile(r"(?i)\b(api[_-]?key|token|secret|password)\b(\s*[=:]\s*)\S+"), r"\1\2<지움>"),
-    (re.compile(r"\bsk-[A-Za-z0-9_-]{16,}"), "<지움>"),                               # API 키 모양
-    (re.compile(r"\bGPU-[0-9a-f]{8}-[0-9a-f-]{27}\b"), "<GPU-ID>"),                    # GPU UUID
-    (re.compile(r"\b010-\d{3,4}-\d{4}\b"), "[전화번호]"),                              # 남아 있을지 모르는 연락처
+    # API 키 모양
+    (re.compile(r"\bsk-[A-Za-z0-9_-]{16,}"), "<지움>"),
+    # GPU UUID
+    (re.compile(r"\bGPU-[0-9a-f]{8}-[0-9a-f-]{27}\b"), "<GPU-ID>"),
+    # 남아 있을지 모르는 연락처
+    (re.compile(r"\b010-\d{3,4}-\d{4}\b"), "[전화번호]"),
     (re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b"), "[이메일]"),
 ]
 

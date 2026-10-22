@@ -21,7 +21,8 @@ from app.preprocess import CLASSES, softmax, to_tensor
 
 MODEL_NAME = os.environ.get("MODEL_NAME", "flowers-classifier")
 MODEL_ALIAS = os.environ.get("MODEL_ALIAS", "champion")
-RELOAD_TOKEN = os.environ.get("RELOAD_TOKEN", "")               # 비어 있으면 /reload를 막는다
+# 비어 있으면 /reload를 막는다
+RELOAD_TOKEN = os.environ.get("RELOAD_TOKEN", "")
 MAX_BYTES = 10 * 1024 * 1024
 os.environ.setdefault("MLFLOW_DEFAULT_PREDICTION_DEVICE", "cpu")
 torch.set_num_threads(int(os.environ.get("TORCH_THREADS", torch.get_num_threads())))
@@ -41,7 +42,8 @@ def load_model():
     """별칭이 지금 가리키는 버전을 찾아, 그 버전 번호로 고정해서 불러온다."""
     mv = mlflow.MlflowClient().get_model_version_by_alias(MODEL_NAME, MODEL_ALIAS)
     model = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}/{mv.version}")
-    model.predict(np.zeros((1, 3, 224, 224), dtype=np.float32))   # 첫 요청이 느리지 않게 미리 한 번
+    # 첫 요청이 느리지 않게 미리 한 번
+    model.predict(np.zeros((1, 3, 224, 224), dtype=np.float32))
     with lock:
         state.update(model=model, version=mv.version, description=mv.description,
                      loaded_at=datetime.now().isoformat(timespec="seconds"))
@@ -80,7 +82,8 @@ def predict(file: UploadFile = File(...)):
     except (UnidentifiedImageError, OSError):
         raise HTTPException(status_code=400, detail="이미지 파일로 읽을 수 없습니다")
 
-    with lock:                                     # /reload 중에도 일관된 모델·버전으로 응답
+    # /reload 중에도 일관된 모델·버전으로 응답
+    with lock:
         model, version = state["model"], state["version"]
     probs = softmax(to_logits(model.predict(x)))[0]
     top = int(probs.argmax())

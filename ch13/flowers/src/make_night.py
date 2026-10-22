@@ -26,7 +26,8 @@ def to_night(img: Image.Image, seed: int) -> Image.Image:
     x = np.asarray(img.convert("RGB"), dtype=np.float32) / 255
     x = x * rng.uniform(0.15, 0.35)                       # 노출 부족
     x = x * np.array([1.0, 0.85, 0.65])                   # 백열등 같은 따뜻한 조명
-    x = x + rng.normal(0, rng.uniform(0.01, 0.03), x.shape)   # 어두울수록 두드러지는 센서 잡음
+    # 어두울수록 두드러지는 센서 잡음
+    x = x + rng.normal(0, rng.uniform(0.01, 0.03), x.shape)
     return Image.fromarray((np.clip(x, 0, 1) * 255).astype(np.uint8))
 
 

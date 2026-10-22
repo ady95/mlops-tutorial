@@ -76,7 +76,8 @@ def resolve() -> tuple[str, str]:
     mv = client.get_model_version_by_alias(MODEL, "champion")
     # 별칭으로 부른 프롬프트는 기본 60초 동안 캐시된다 — 방금 옮긴 별칭을 읽으려면 캐시를 끈다 (11-5)
     prompt = mlflow.genai.load_prompt(f"prompts:/{PROMPT}@production", cache_ttl_seconds=0)
-    paired = mv.tags.get("prompt_uri", "").rsplit("/", 1)[-1]          # 게이트에서 함께 평가된 프롬프트 (09-5)
+    # 게이트에서 함께 평가된 프롬프트 (09-5)
+    paired = mv.tags.get("prompt_uri", "").rsplit("/", 1)[-1]
     if paired != str(prompt.version):
         raise HTTPException(409, f"champion v{mv.version}은 프롬프트 v{paired}와 평가되었는데 production은 v{prompt.version}입니다")
     return mv.version, str(prompt.version)

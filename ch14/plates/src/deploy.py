@@ -40,7 +40,8 @@ def reload_and_check(kind: str, expected: str) -> bool:
 
 def check_pair(client, kind: str, new: str) -> None:
     partner = alias_version(client, OTHER[kind], "champion")
-    if partner is None:                                   # 맨 처음, 짝 champion이 아직 없을 때
+    # 맨 처음, 짝 champion이 아직 없을 때
+    if partner is None:
         return
     pair = {kind: new, OTHER[kind]: partner}
     if (pair["detector"], pair["recognizer"]) not in verified_pairs(client):

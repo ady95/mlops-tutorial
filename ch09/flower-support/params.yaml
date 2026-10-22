@@ -3,7 +3,8 @@ data:                          # 학습 데이터 합성 (08-1)
   seed: 42
   concurrency: 16
 
-model:                         # 베이스 모델 (08-2) — 리비전을 고정해야 같은 모델을 다시 받는다
+# 베이스 모델 (08-2) — 리비전을 고정해야 같은 모델을 다시 받는다
+model:
   name: Qwen/Qwen3.5-4B
   revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
 
@@ -36,13 +37,18 @@ evalset:                       # 평가 세트 합성 (09-2)
   per_slice: 20                # 조각 6개 × 20 = 120건
   concurrency: 16
 
-gate:                          # LLM 배포 기준 (09-5) — 재학습 결과를 보기 전에 정했다
-  min_json_valid: 1.0          # 형식이 깨진 출력은 한 건도 안 된다 (받는 쪽 시스템이 멈춘다)
+# LLM 배포 기준 (09-5) — 재학습 결과를 보기 전에 정했다
+gate:
+  # 형식이 깨진 출력은 한 건도 안 된다 (받는 쪽 시스템이 멈춘다)
+  min_json_valid: 1.0
   min_all_fields: 0.80         # 보류 세트 다섯 필드 모두 정답
-  min_slice_all_fields: 0.60   # 어느 조각(주입·함정 등)도 이보다 낮으면 불가 — 평균이 약점을 가리지 않게
+  # 어느 조각(주입·함정 등)도 이보다 낮으면 불가 — 평균이 약점을 가리지 않게
+  min_slice_all_fields: 0.60
   min_summary_pass: 0.80       # 요약 심판(사실성·핵심 요청·한 문장) 모두 통과 비율
-  min_indist_all_fields: 0.97  # 8장 테스트 세트(학습 분포) — 원래 하던 일을 망가뜨리지 않았는지 (회귀)
-  max_drop_vs_champion: 0.02   # 현재 champion보다 평가 세트 정답률이 이만큼 넘게 떨어지면 불가
+  # 8장 테스트 세트(학습 분포) — 원래 하던 일을 망가뜨리지 않았는지 (회귀)
+  min_indist_all_fields: 0.97
+  # 현재 champion보다 평가 세트 정답률이 이만큼 넘게 떨어지면 불가
+  max_drop_vs_champion: 0.02
 
 augment:                       # 학습 데이터 보강 (09-5)
   seed: 95

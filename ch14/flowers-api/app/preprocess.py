@@ -12,7 +12,8 @@ from PIL import Image, ImageOps
 IMAGE_SIZE = 224
 MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
-CLASSES = ["daisy", "dandelion", "roses", "sunflowers", "tulips"]   # 학습 때 ImageFolder의 순서(이름순)
+# 학습 때 ImageFolder의 순서(이름순)
+CLASSES = ["daisy", "dandelion", "roses", "sunflowers", "tulips"]
 
 
 def to_tensor(image_bytes: bytes) -> np.ndarray:

@@ -19,7 +19,8 @@ def check(answer: str, messages: list[dict]) -> dict:
         if m.get("role") == "tool":
             for n in numbers(m["content"]):
                 v = float(n)
-                for d in range(1, 5):             # 도구 값을 1~4자리로 반올림한 모든 표기
+                # 도구 값을 1~4자리로 반올림한 모든 표기
+                for d in range(1, 5):
                     seen.add(f"{round(v, d):.{d}f}")
     found = numbers(answer)
     missing = [n for n in found if f"{float(n):.{len(n.split('.')[1])}f}" not in seen]

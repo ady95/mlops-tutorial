@@ -36,7 +36,8 @@ def reload_and_check(expected: str) -> bool:
     return served == expected
 
 
-# 1. 승인 기준을 지금 시점의 champion과 다시 비교한다 (학습 이후 champion이 바뀌었을 수 있다)
+# 1. 승인 기준을 지금 시점의 champion과 다시 비교한다 (학습 이후 champion이
+# 바뀌었을 수 있다)
 #    판정 때 같은 테스트 세트로 잰 champion 점수(champion_* 태그)로 비교한다. 그 사이 champion이 바뀌었으면 다시 판정해야 한다 (12-5)
 champ_version, _ = champion_tags()
 tags = client.get_model_version(NAME, version).tags

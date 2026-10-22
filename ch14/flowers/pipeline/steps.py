@@ -10,9 +10,11 @@ from zenml import get_step_context, log_metadata, step
 from src import reference, registry, training
 
 
-@step(enable_cache=False)   # 데이터가 바뀌었는지는 DVC가 판단한다 (dvc repro가 알아서 건너뜀)
+# 데이터가 바뀌었는지는 DVC가 판단한다 (dvc repro가 알아서 건너뜀)
+@step(enable_cache=False)
 def prepare_data() -> dict:
-    subprocess.run(["dvc", "pull"], check=True)    # 깨끗한 폴더(CI 러너)에서도 RustFS에서 데이터를 받는다
+    # 깨끗한 폴더(CI 러너)에서도 RustFS에서 데이터를 받는다
+    subprocess.run(["dvc", "pull"], check=True)
     subprocess.run(["dvc", "repro"], check=True)
     version = training.data_version()
     log_metadata(metadata=version)
@@ -66,7 +68,8 @@ def gate(version: str, metrics: dict) -> dict:
     result = {"version": version, "passed": passed, "champion_version": champ_version,
               "checks": [{"rule": text, "ok": ok} for text, ok in checks]}
     log_metadata(metadata={"passed": passed})
-    json.dump(result, open("gate_result.json", "w"), ensure_ascii=False, indent=2)   # CI가 읽는 결과
+    # CI가 읽는 결과
+    json.dump(result, open("gate_result.json", "w"), ensure_ascii=False, indent=2)
     for c in result["checks"]:
         print(f"  [{'OK' if c['ok'] else '불가'}] {c['rule']}")
     print(f"판정: {'통과 — challenger' if passed else '불가'} (v{version})")

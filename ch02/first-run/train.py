@@ -93,10 +93,13 @@ def main():
 
         mlflow.log_metric("train_seconds", time.time() - start)
 
-        # MLflow 3는 PyTorch 모델을 torch.export(pt2) 형식으로 저장하며, 저장한 장치가 모델에 고정된다.
-        # CPU로 옮겨 저장하고, 저장 직후 검증도 CPU에서 하도록 지정한다 (GPU 서버에서 실행할 때 필요).
+        # MLflow 3는 PyTorch 모델을 torch.export(pt2) 형식으로 저장하며, 저장한
+        # 장치가 모델에 고정된다.
+        # CPU로 옮겨 저장하고, 저장 직후 검증도 CPU에서 하도록 지정한다 (GPU
+        # 서버에서 실행할 때 필요).
         os.environ.setdefault("MLFLOW_DEFAULT_PREDICTION_DEVICE", "cpu")
-        # 입력 예시의 배치 크기가 1이면 모델이 배치 1 전용으로 고정되므로 여러 장을 넘긴다.
+        # 입력 예시의 배치 크기가 1이면 모델이 배치 1 전용으로 고정되므로 여러
+        # 장을 넘긴다.
         example = next(iter(test_loader))[0][:4].numpy()
         mlflow.pytorch.log_model(model.cpu(), name="model", input_example=example)
         print(f"run_id: {run.info.run_id}")

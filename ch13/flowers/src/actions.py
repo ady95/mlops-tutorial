@@ -16,9 +16,12 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 ACTIONS = {                                          # 조치 → 인자 이름 → 값 형식
-    "deploy": {"version": r"^\d{1,4}$"},             # 7장 deploy.py 그대로 (판정 재확인, 실패하면 되돌림)
-    "restore": {"version": r"^\d{1,4}$"},            # 승인을 거쳐 운영된 적 있는 버전으로 되돌리기 (판정 없이)
-    "silence": {"alertname": r"^[A-Za-z]{3,40}$", "hours": r"^([1-9]|1\d|2[0-4])$"},   # 최대 24시간
+    # 7장 deploy.py 그대로 (판정 재확인, 실패하면 되돌림)
+    "deploy": {"version": r"^\d{1,4}$"},
+    # 승인을 거쳐 운영된 적 있는 버전으로 되돌리기 (판정 없이)
+    "restore": {"version": r"^\d{1,4}$"},
+    # 최대 24시간
+    "silence": {"alertname": r"^[A-Za-z]{3,40}$", "hours": r"^([1-9]|1\d|2[0-4])$"},
     "retrain": {},                                   # 학습 파이프라인 워크플로 실행
 }
 API = f"https://api.github.com/repos/{os.environ.get('GITHUB_REPOSITORY', '')}"

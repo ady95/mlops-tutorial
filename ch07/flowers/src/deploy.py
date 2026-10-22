@@ -36,7 +36,8 @@ def reload_and_check(expected: str) -> bool:
     return served == expected
 
 
-# 1. 승인 기준을 지금 시점의 champion과 다시 비교한다 (학습 이후 champion이 바뀌었을 수 있다)
+# 1. 승인 기준을 지금 시점의 champion과 다시 비교한다 (학습 이후 champion이
+# 바뀌었을 수 있다)
 champ_version, champ = champion_tags()
 checks = judge(client.get_model_version(NAME, version).tags,
                None if champ_version == version else champ, yaml.safe_load(open("params.yaml"))["gate"])

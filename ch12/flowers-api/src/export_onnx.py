@@ -22,8 +22,10 @@ os.environ.setdefault("MLFLOW_DEFAULT_PREDICTION_DEVICE", "cpu")
 
 client = mlflow.MlflowClient()
 src = client.get_model_version_by_alias(NAME, "champion")
-# pt2로 저장된 모델은 torch.export로 그래프가 고정되어 있다. 학습 코드가 추론 모드로 저장했으므로
-# 변환 때 나오는 "training mode" 경고는 무시해도 되며, eval()은 호출할 수 없다(NotImplementedError)
+# pt2로 저장된 모델은 torch.export로 그래프가 고정되어 있다. 학습 코드가 추론
+# 모드로 저장했으므로
+# 변환 때 나오는 "training mode" 경고는 무시해도 되며, eval()은 호출할 수
+# 없다(NotImplementedError)
 model = mlflow.pytorch.load_model(f"models:/{NAME}/{src.version}", map_location="cpu")
 
 # 1. 변환: 배치 크기는 바뀔 수 있게(dynamic) 둔다
@@ -79,13 +81,15 @@ for k, v in metrics.items():
 mlflow.set_experiment("ch06-onnx")
 with mlflow.start_run(run_name=f"onnx-from-v{src.version}"):
     mlflow.log_metrics(metrics)
-    # log_model은 파일 경로가 아니라 모델 객체를 받는다. onnx.load가 가중치 파일까지 읽어 온다
+    # log_model은 파일 경로가 아니라 모델 객체를 받는다. onnx.load가 가중치
+    # 파일까지 읽어 온다
     info = mlflow.onnx.log_model(onnx.load("flowers.onnx"), name="model", input_example=x[:4])
 mv = mlflow.register_model(info.model_uri, ONNX_NAME,
                            tags={"source_model": NAME, "source_version": src.version})
 print(f"registered {ONNX_NAME} version {mv.version} (from {NAME} v{src.version})")
 
-# 원본(champion)은 이미 5장의 승인 기준을 통과했다. 변환본은 "원본과 결과가 같은가"만 확인하면 된다
+# 원본(champion)은 이미 5장의 승인 기준을 통과했다. 변환본은 "원본과 결과가
+# 같은가"만 확인하면 된다
 if metrics["prediction_agreement"] == 1.0 and metrics["onnx_accuracy"] == metrics["pytorch_accuracy"]:
     client.set_registered_model_alias(ONNX_NAME, "champion", mv.version)
     print(f"{ONNX_NAME} v{mv.version} → champion (원본과 예측 100% 일치)")

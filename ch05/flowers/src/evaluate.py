@@ -17,7 +17,8 @@ from torchvision import datasets, transforms
 from train import MEAN, STD, code_and_data_version
 
 NAME = "flowers-classifier"
-os.environ.setdefault("MLFLOW_DEFAULT_PREDICTION_DEVICE", "cpu")   # 서빙과 같은 CPU 기준
+# 서빙과 같은 CPU 기준
+os.environ.setdefault("MLFLOW_DEFAULT_PREDICTION_DEVICE", "cpu")
 
 version = sys.argv[1]
 client = mlflow.MlflowClient()
@@ -48,8 +49,10 @@ mlflow.set_experiment("ch05-evaluation")
 with mlflow.start_run(run_name=f"{NAME}-v{version}") as run:
     mlflow.log_params({"model_name": NAME, "model_version": version, "test_size": len(labels)})
     mlflow.set_tags({"eval_data_prepared_md5": code_and_data_version()["data_prepared_md5"]})
-    # 예측값을 직접 넘기면 MLflow 표준 분류 평가(정확도·F1·혼동 행렬 등)를 그대로 쓸 수 있다.
-    # 다중 분류의 기본 평균 방식은 weighted라서, 4장의 검증 F1과 같은 macro로 지정한다.
+    # 예측값을 직접 넘기면 MLflow 표준 분류 평가(정확도·F1·혼동 행렬 등)를 그대로
+    # 쓸 수 있다.
+    # 다중 분류의 기본 평균 방식은 weighted라서, 4장의 검증 F1과 같은 macro로
+    # 지정한다.
     result = mlflow.models.evaluate(
         data=pd.DataFrame({"label": labels, "prediction": preds}),
         targets="label", predictions="prediction", model_type="classifier",

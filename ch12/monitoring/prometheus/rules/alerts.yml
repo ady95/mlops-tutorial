@@ -41,7 +41,8 @@ groups:
 
   - name: model                    # 모델의 출력이 평소와 같은가
     rules:
-      - alert: FlowersLowConfidence    # 가장 높은 확률이 0.6 미만인 예측의 비율 (평소 약 4%)
+      # 가장 높은 확률이 0.6 미만인 예측의 비율 (평소 약 4%)
+      - alert: FlowersLowConfidence
         expr: |
           sum(rate(flowers_prediction_confidence_bucket{le="0.6"}[15m]))
             / sum(rate(flowers_prediction_confidence_count[15m])) > 0.15

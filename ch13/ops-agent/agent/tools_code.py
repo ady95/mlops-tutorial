@@ -10,7 +10,8 @@ from pathlib import Path
 from agent.core import tool
 
 ROOT = Path(os.environ.get("WORKSPACE", "workspace")).resolve()
-PROTECTED = (".git", ".github", ".venv", "data")     # 읽기도 쓰기도 안 되는 곳 — 워크플로·데이터는 사람이 고친다
+# 읽기도 쓰기도 안 되는 곳 — 워크플로·데이터는 사람이 고친다
+PROTECTED = (".git", ".github", ".venv", "data")
 
 
 def inside(path: str) -> Path:

@@ -14,7 +14,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 0              # 새 파드가 준비되기 전에는 옛 파드를 내리지 않는다
+      # 새 파드가 준비되기 전에는 옛 파드를 내리지 않는다
+      maxUnavailable: 0
       maxSurge: 1
   template:
     metadata:
@@ -36,7 +37,8 @@ spec:
             requests: {cpu: 500m, memory: 600Mi}     # HPA의 CPU 사용률은 이 요청량 대비
             limits: {memory: 1500Mi}
           lifecycle:
-            preStop:                 # 종료 신호 전에 5초: 서비스 목록에서 빠지는 동안 들어온 요청까지 처리
+            # 종료 신호 전에 5초: 서비스 목록에서 빠지는 동안 들어온 요청까지 처리
+            preStop:
               sleep: {seconds: 5}
           readinessProbe:            # 모델을 다 불러온 뒤에야 트래픽을 받는다
             httpGet: {path: /health, port: 8000}

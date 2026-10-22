@@ -10,7 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.0     # setup-uv는 v7 이후 주 버전 태그(v10)를 만들지 않는다
+      # setup-uv는 v7 이후 주 버전 태그(v10)를 만들지 않는다
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           version: "0.13.1"
       - run: uv sync --frozen --extra cpu

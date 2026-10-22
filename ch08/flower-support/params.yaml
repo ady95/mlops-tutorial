@@ -3,7 +3,8 @@ data:                          # 학습 데이터 합성 (08-1)
   seed: 42
   concurrency: 16
 
-model:                         # 베이스 모델 (08-2) — 리비전을 고정해야 같은 모델을 다시 받는다
+# 베이스 모델 (08-2) — 리비전을 고정해야 같은 모델을 다시 받는다
+model:
   name: Qwen/Qwen3.5-4B
   revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
 

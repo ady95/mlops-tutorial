@@ -34,7 +34,8 @@ out = subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
 print(out)
 
 # 3. 새 실행과 원래 실행의 지표를 비교한다
-#    "가장 최근 실행"으로 찾으면 같은 서버에 동시에 기록하는 다른 사람의 실행이 잡힐 수 있어,
+# "가장 최근 실행"으로 찾으면 같은 서버에 동시에 기록하는 다른 사람의 실행이 잡힐
+# 수 있어,
 #    학습 스크립트가 출력한 run_id로 정확히 찾는다
 new_id = re.search(r"run_id=(\w+)", out).group(1)
 mlflow.MlflowClient().set_tag(new_id, "reproduced_from", run.info.run_id)

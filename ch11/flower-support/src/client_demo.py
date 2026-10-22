@@ -10,12 +10,14 @@ import time
 import mlflow
 from openai import OpenAI
 
-client = OpenAI()                     # 주소와 키는 OPENAI_BASE_URL, OPENAI_API_KEY 환경변수에서 읽는다
+# 주소와 키는 OPENAI_BASE_URL, OPENAI_API_KEY 환경변수에서 읽는다
+client = OpenAI()
 print("모델 목록:", [m.id for m in client.models.list()])
 
 prompt = mlflow.genai.load_prompt("prompts:/flower-support-extract@production")
 messages = prompt.format(inquiry="주문번호 FL-031244 해바라기 꽃다발 받는 날짜를 다음 주로 바꾸고 싶어요. 급하지 않아요.")
-extra = {"chat_template_kwargs": {"enable_thinking": False}}     # Qwen3.5 생각 모드 끄기 (08-3)
+# Qwen3.5 생각 모드 끄기 (08-3)
+extra = {"chat_template_kwargs": {"enable_thinking": False}}
 
 # 1. 일반 호출: 응답 전체를 한 번에 받는다
 start = time.perf_counter()

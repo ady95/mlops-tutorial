@@ -36,7 +36,8 @@ def register(run_id: str) -> str:
     return mv.version
 
 
-SLICES = {"day": lambda name: not name.startswith("night_"),     # 테스트 세트를 촬영 조건별로 나눈 조각 (12-5)
+# 테스트 세트를 촬영 조건별로 나눈 조각 (12-5)
+SLICES = {"day": lambda name: not name.startswith("night_"),
           "night": lambda name: name.startswith("night_")}
 
 
@@ -94,7 +95,8 @@ def judge(tags: dict, champion_tags: dict | None, gate: dict) -> list[tuple[str,
               (f"CPU 추론 {latency:.1f}ms <= {gate['max_latency_ms']}ms", latency <= gate["max_latency_ms"])]
     if gate["require_clean_git"]:
         checks.append((f"커밋된 코드로 학습 (git_dirty={tags['git_dirty']})", tags["git_dirty"] == "False"))
-    for s, minimum in gate.get("min_slice_f1", {}).items():      # 조각이 테스트 세트에 없으면 통과로 치지 않는다
+    # 조각이 테스트 세트에 없으면 통과로 치지 않는다
+    for s, minimum in gate.get("min_slice_f1", {}).items():
         value = tags.get(f"test_f1_{s}")
         checks.append((f"{s} 조각 F1 {float(value):.4f} >= {minimum}" if value else f"{s} 조각이 테스트 세트에 없음",
                        value is not None and float(value) >= minimum))
@@ -102,7 +104,8 @@ def judge(tags: dict, champion_tags: dict | None, gate: dict) -> list[tuple[str,
         champ_f1 = float(champion_tags["test_f1_macro"])
         checks.append((f"현재 champion(F1 {champ_f1:.4f}) 대비 하락 <= {gate['max_f1_drop']}",
                        champ_f1 - f1 <= gate["max_f1_drop"]))
-        for s in SLICES:                                          # 새 조건을 배우느라 기존 조건을 잊지 않았는가
+        # 새 조건을 배우느라 기존 조건을 잊지 않았는가
+        for s in SLICES:
             key = f"test_f1_{s}"
             if key in tags and key in champion_tags:
                 drop = float(champion_tags[key]) - float(tags[key])

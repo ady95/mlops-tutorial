@@ -1,8 +1,10 @@
 validate:
   min_side: 100              # 짧은 변이 이보다 작으면 제외 (픽셀)
-  near_dup_distance: 4       # 차이 해시(dHash) 거리가 이 값 이하이면 같은 사진으로 본다
+  # 차이 해시(dHash) 거리가 이 값 이하이면 같은 사진으로 본다
+  near_dup_distance: 4
   max_exclude_ratio: 0.05    # 제외 비율이 이보다 크면 파이프라인을 멈춘다
-  min_per_class: 500         # 클래스별 남은 이미지가 이보다 적으면 파이프라인을 멈춘다
+  # 클래스별 남은 이미지가 이보다 적으면 파이프라인을 멈춘다
+  min_per_class: 500
 
 prepare:
   image_size: 224            # 짧은 변을 맞춘 뒤 가운데를 정사각형으로 자른다

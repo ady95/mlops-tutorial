@@ -30,7 +30,8 @@ class Tool:
     description: str
     params: dict                 # JSON 스키마의 properties
     required: list = field(default_factory=list)
-    writes: bool = False         # 무언가를 바꾸는 도구인가 (13-5: 바꾸는 도구는 '제안'만 한다)
+    # 무언가를 바꾸는 도구인가 (13-5: 바꾸는 도구는 '제안'만 한다)
+    writes: bool = False
 
     @property
     def name(self) -> str:
