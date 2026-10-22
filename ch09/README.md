@@ -24,7 +24,8 @@ cd flower-support
 uv sync --extra cu130
 mkdir -p data/raw data/augment eval/raw
 cp ../../ch08/dataset/generated.jsonl data/raw/
-cp ../dataset/evalset_generated.jsonl ../dataset/holdout_generated.jsonl eval/raw/
+cp ../dataset/evalset_generated.jsonl ../dataset/holdout_generated.jsonl \
+  eval/raw/
 cp ../dataset/augment_generated.jsonl data/augment/generated.jsonl
 uv run dvc init && uv run dvc add data/raw eval/raw data/augment && uv run dvc repro
 
@@ -39,7 +40,8 @@ export OPENAI_API_KEY=sk-... OPENAI_JUDGE_MODEL=<심판 모델>
 uv run python -m src.judge r16-v1
 
 # 재학습 → 보류 세트·회귀 평가 → 게이트
-uv run python -m src.train --set data_dir=data/prepared_v2 --set run_name=r16-v2data
+uv run python -m src.train --set data_dir=data/prepared_v2 \
+  --set run_name=r16-v2data
 uv run python -m src.eval_llm --data holdout --prompt $P/2 --adapter-run <재학습 실행 ID> --name r16v2-v2-holdout
 uv run python -m src.eval_llm --data indist --prompt $P/2 --adapter-run <재학습 실행 ID> --name r16v2-v2-indist
 uv run python -m src.judge r16v2-v2-holdout
